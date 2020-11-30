@@ -1,3 +1,3 @@
 # root-throughput
 
-A tool to measure what throughput can be expected from ROOT I/O given the system, the dataset and the number of threads.
+A tool to measure what throughput can be expected from ROOT for a given combination of system, dataset and number of threads.
