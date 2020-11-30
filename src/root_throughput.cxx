@@ -1,3 +1,6 @@
+/* Copyright (C) 2020 Enrico Guiraud
+   See the LICENSE file in the top directory for more information. */
+
 #include <TBranch.h>
 #include <TFile.h>
 #include <TStopwatch.h>
