@@ -79,7 +79,7 @@ Result EvalThroughputST(const Data &d)
    return {sw.RealTime(), sw.CpuTime(), bytesRead};
 }
 
-Result EvalThroughputMT(const Data &d, unsigned nThreads)
+Result EvalThroughputMT(const Data &, unsigned)
 {
    throw std::runtime_error("Unimplemented");
    return {};
