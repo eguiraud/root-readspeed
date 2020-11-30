@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
 project (root-throughput CXX)
-set(CMAKE_CXX_STANDARD 17)
 add_compile_options(-Wall -Wextra -Wpedantic)
 
 if(NOT CMAKE_BUILD_TYPE)
