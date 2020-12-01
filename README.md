@@ -31,8 +31,12 @@ The numbers reported can also be used to figure out what the runtime bottleneck 
 |If|Then|
 |--|----|
 |`Real time` is significantly lower than the runtimes of the actual application when reading the same data|[Application logic is the bottleneck](#application-logic-is-the-bottleneck)| 
-|`Real time` is much higher than `CPU time / number of threads`|[Raw I/O is the bottleneck](#raw-io-is-the-bottleneck)|
-|1. `Real time` is around the same as `CPU time / number of threads` and 2.`Throughput` is lower than what the read-out capability of the storage should be|[Decompression is the bottleneck](#decompression-is-the-bottleneck)|
+|`Real time` is much higher than `CPU time / number of cores[1]` |[Raw I/O is the bottleneck](#raw-io-is-the-bottleneck)|
+|1. `Real time` is around the same as `CPU time / number of cores[1]` and 2.`Throughput` is lower than what the read-out capability of the storage should be|[Decompression is the bottleneck](#decompression-is-the-bottleneck)|
+
+<small>
+[1] `Number of cores` is the actual number of physical CPU cores used by `root-readspeed` during its run. If no `--threads` argument was passed, this is 1. If the `--threads` argument is lower or equal than the number of available physical cores, then `number of cores` can be assumed equal to `number of threads`. Otherwise, if running with more threads than physical cores or if running in shared environments concurrently to other heavy applications, things get a bit hairy -- the effective `number of cores` in that case would be generally lower than `number of threads`. Running a theoretically-perfectly-scaling, CPU-only application might indicate the effective `number of cores` by means of its scaling behavior.
+</small>
 
 ### Application logic is the bottleneck
 
