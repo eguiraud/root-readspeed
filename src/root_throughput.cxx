@@ -6,10 +6,12 @@
 #include <TBranch.h>
 #include <TFile.h>
 #include <TStopwatch.h>
+#include <TSystem.h>
 #include <TTree.h>
 
 #include <algorithm>
 #include <atomic>
+#include <cassert>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -118,7 +120,7 @@ std::vector<std::vector<EntryRange>> GetClusters(const Data &d) {
       std::vector<EntryRange> rangesInFile;
       while ((start = it.Next()) < nEntries)
          rangesInFile.emplace_back(EntryRange{start, it.GetNextEntry()});
-      ranges.emplace_back(std::move(rangesInFile));
+      ranges[fileIdx] = std::move(rangesInFile);
       if (d.fTreeNames.size() > 1)
          ++treeIdx;
    }
@@ -189,25 +191,44 @@ void PrintThroughput(const Result &r)
    std::cout << "Throughput:\t\t\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
 }
 
-void Test()
+void RequireFile(const std::string &fname)
 {
-   auto writeFile = [](const std::string &fname, int val) {
-      TFile f(fname.c_str(), "recreate");
-      TTree t("t", "t");
-      t.Branch("x", &val);
-      for (int i = 0; i < 10000000; ++i)
-         t.Fill();
-      t.Write();
-   };
-   writeFile("test1.root", 42);
-   writeFile("test2.root", 84);
+   if (gSystem->AccessPathName(fname.c_str()) == false) // then the file already exists: weird return value convention
+      return; // nothing to do
+
+   TFile f(fname.c_str(), "recreate");
+   TTree t("t", "t");
+   int x = 42;
+   t.Branch("x", &x);
+   for (int i = 0; i < 10000000; ++i)
+      t.Fill();
+   t.Write();
+}
+
+void TestST()
+{
+   RequireFile("test1.root");
+   RequireFile("test2.root");
 
    const auto result = EvalThroughput({{"t"}, {"test1.root", "test2.root"}, {"x"}}, 0);
+   assert(result.fUncompressedBytesRead == 80000000 && "Wrong number of bytes read");
+   PrintThroughput(result);
+}
+
+void TestMT()
+{
+   RequireFile("test1.root");
+   RequireFile("test2.root");
+
+   const auto result = EvalThroughput({{"t"}, {"test1.root", "test2.root"}, {"x"}}, 4);
+   assert(result.fUncompressedBytesRead == 80000000 && "Wrong number of bytes read");
    PrintThroughput(result);
 }
 
 int main()
 {
-   Test();
+   TestST();
+   TestMT();
+
    return 0;
 }
