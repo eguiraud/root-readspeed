@@ -141,9 +141,6 @@ std::vector<std::vector<EntryRange>> MergeClusters(std::vector<std::vector<Entry
 
 Result EvalThroughputMT(const Data &d, unsigned nThreads)
 {
-   TStopwatch sw;
-   sw.Start();
-
    TStopwatch clsw;
    clsw.Start();
    const auto clusters = MergeClusters(GetClusters(d));
@@ -159,14 +156,16 @@ Result EvalThroughputMT(const Data &d, unsigned nThreads)
       const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
 
       auto processCluster = [&] (const EntryRange &range) mutable {
+         std::cout << "range: " << range.fStart << " " << range.fEnd << '\n';
          bytesRead += ReadTree(treeName, fileName, d.fBranchNames, range);
       };
 
       pool.Foreach(processCluster, clusters[fileIdx]);
    };
 
+   TStopwatch sw;
+   sw.Start();
    pool.Foreach(processFile, ROOT::TSeqUL{d.fFileNames.size()});
-
    sw.Stop();
 
    return {sw.RealTime(), sw.CpuTime(), clsw.RealTime(), clsw.CpuTime(), bytesRead};
