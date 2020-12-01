@@ -26,7 +26,7 @@ Right off the bat, `root-readspeed` tells you how quickly ROOT data can be serve
 
 This information might be directly useful to estimate analysis runtimes -- just remember that `Throughput` reports *uncompressed* MBs/s, while ROOT data stored on disk is typically compressed so the *compressed* or on-disk MBs read per second will be around `Throughput / compression_factor` MB/s.
 
-But the other numbers reported can be used to figure out what the runtime bottleneck is for a given application.
+The numbers reported can also be used to figure out what the runtime bottleneck is for a given application:
 
 |If|Then|
 |--|----|
