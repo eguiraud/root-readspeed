@@ -37,6 +37,7 @@ But the other numbers reported can be used to figure out what the runtime bottle
 ### Application logic is the bottleneck
 
 If the `Real time` number returned by this tool is significantly lower than what the actual analysis takes when running on the same data in the same environment, this indicates that runtimes are probably dominated by the analysis' logic itself, and optimizing this logic might result in visible speed improvements.
+Increasing the number of cores might also provide performance benefits if the slow parts of the analysis' logc can be parallelized.
 
 On Linux, tools such as [perf and flamegraphs](http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html) can be used to inspect where the program spends its CPU cycles.
 
@@ -47,11 +48,11 @@ Possible ways to get higher throughput in such a situation are:
 - caching/copying just the events and branches you need on a fast local storage
 - converting the file to a slower but higher-compression algorithm, so that less bytes per physical event need to travel from storage to memory
 
-For very large number of threads and/or data stored on one or few spinning disks, it could also be interesting to check whether reducing the number of threads results in increased throughput: many concurrent reads at different locations might degrade the performance of the disk.  
+Increasing the number of cores will likely not result in any performance improvement. For very large number of threads and/or data stored on one or few spinning disks, it could also be interesting to check whether *reducing* the number of threads results in increased throughput: many concurrent reads at different locations might degrade the performance of the disk.
 
 ### Decompression is the bottleneck
 
-If `Real time` is around the same as `CPU time / number of threads` and `Throughput` is lower than what the read-out capability of the storage should be, then ROOT's decompression is not keeping up with the data read-out speed on that system. Converting the file to a faster compression algorithm might improve throughput significantly at the cost of increase dataset size.  
+If `Real time` is around the same as `CPU time / number of threads` and `Throughput` is lower than what the read-out capability of the storage should be, then ROOT's decompression is not keeping up with the data read-out speed on that system. Converting the file to a faster compression algorithm might improve throughput significantly at the cost of increase dataset size. Increasing the number of cores should result in almost-ideal scaling.
 
 ## Building root-readspeed
 
