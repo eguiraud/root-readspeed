@@ -56,7 +56,7 @@ ReadTree(const std::string &treeName, const std::string &fileName, const std::ve
    std::transform(branchNames.begin(), branchNames.end(), branches.begin(), getBranch);
 
    const auto nEntries = t->GetEntries();
-   ULong64_t bytesRead = 0ull;
+   ULong64_t bytesRead = 0;
    for (auto e = 0ll; e < nEntries; ++e)
       for (auto b : branches)
          bytesRead += b->GetEntry(e);
@@ -70,7 +70,7 @@ Result EvalThroughputST(const Data &d)
    sw.Start();
 
    auto treeIdx = 0;
-   ULong64_t bytesRead = 0ull;
+   ULong64_t bytesRead = 0;
    for (const auto &fName : d.fFileNames) {
       bytesRead += ReadTree(d.fTreeNames[treeIdx], fName, d.fBranchNames);
       if (d.fTreeNames.size() > 1)
