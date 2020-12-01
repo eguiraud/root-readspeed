@@ -1,13 +1,15 @@
 /* Copyright (C) 2020 Enrico Guiraud
    See the LICENSE file in the top directory for more information. */
 
+#include <ROOT/TSeq.hxx>
+#include <ROOT/TThreadExecutor.hxx>
 #include <TBranch.h>
 #include <TFile.h>
 #include <TStopwatch.h>
 #include <TTree.h>
 
 #include <algorithm>
-#include <ctime>
+#include <atomic>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -88,10 +90,76 @@ Result EvalThroughputST(const Data &d)
    return {sw.RealTime(), sw.CpuTime(), bytesRead};
 }
 
-Result EvalThroughputMT(const Data &, unsigned)
+// Return a vector of EntryRanges per file, i.e. a vector of vectors of EntryRanges with outer size equal to
+// d.fFileNames.
+std::vector<std::vector<EntryRange>> GetClusters(const Data &d) {
+   auto treeIdx = 0;
+   const auto nFiles = d.fFileNames.size();
+   std::vector<std::vector<EntryRange>> ranges(nFiles);
+   for (auto fileIdx = 0u; fileIdx < nFiles; ++fileIdx) {
+      const auto &fileName = d.fFileNames[fileIdx];
+      std::unique_ptr<TFile> f(TFile::Open(fileName.c_str()));
+      if (f->IsZombie())
+         throw std::runtime_error("There was a problem opening file \"" + fileName + '"');
+      const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
+      auto *t = f->Get<TTree>(treeName.c_str()); // TFile owns this TTree
+      if (t == nullptr)
+         throw std::runtime_error("There was a problem retrieving TTree \"" + treeName + "\" from file \"" + fileName +
+                                  '"');
+
+      const auto nEntries = t->GetEntries();
+      auto it = t->GetClusterIterator(0);
+      Long64_t start = 0;
+      std::vector<EntryRange> rangesInFile;
+      while ((start = it.Next()) < nEntries)
+         rangesInFile.emplace_back(EntryRange{start, it.GetNextEntry()});
+      ranges.emplace_back(std::move(rangesInFile));
+      if (d.fTreeNames.size() > 1)
+         ++treeIdx;
+   }
+   return ranges;
+}
+
+std::vector<std::vector<EntryRange>> MergeClusters(std::vector<std::vector<EntryRange>> &&clusters)
 {
-   throw std::runtime_error("Unimplemented");
-   return {};
+   // TODO to implement
+   return std::move(clusters);
+}
+
+Result EvalThroughputMT(const Data &d, unsigned nThreads)
+{
+   TStopwatch sw;
+   sw.Start();
+
+   TStopwatch clsw;
+   clsw.Start();
+   const auto clusters = MergeClusters(GetClusters(d));
+   clsw.Stop();
+
+   // for each cluster, spawn a reading task
+   std::atomic_ullong bytesRead{0};
+
+   ROOT::TThreadExecutor pool(nThreads);
+
+   auto processFile = [&] (int fileIdx) mutable {
+      const auto &fileName = d.fFileNames[fileIdx];
+      const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
+
+      auto processCluster = [&] (const EntryRange &range) mutable {
+         bytesRead += ReadTree(treeName, fileName, d.fBranchNames, range);
+      };
+
+      pool.Foreach(processCluster, clusters[fileIdx]);
+   };
+
+   pool.Foreach(processFile, ROOT::TSeqUL{d.fFileNames.size()});
+
+   sw.Stop();
+
+   std::cout << "Real time to retrieve cluster boundaries (included in total time):\t\t\t" << clsw.RealTime() << " s\n";
+   std::cout << "CPU time to retrieve cluster boundaries (included in total time):\t\t\t" << clsw.CpuTime() << " s\n";
+
+   return {sw.RealTime(), sw.CpuTime(), bytesRead};
 }
 
 Result EvalThroughput(const Data &d, unsigned nThreads)
