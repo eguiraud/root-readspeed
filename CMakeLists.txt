@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.11)
-project (root-throughput CXX)
+project (root-readspeed CXX)
 add_compile_options(-Wall -Wextra -Wpedantic)
 
 if(NOT CMAKE_BUILD_TYPE)
