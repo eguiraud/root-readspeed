@@ -220,6 +220,7 @@ void TestST()
 
    const auto result = EvalThroughput({{"t"}, {"test1.root", "test2.root"}, {"x"}}, 0);
    assert(result.fUncompressedBytesRead == 80000000 && "Wrong number of bytes read");
+   std::cout << "\n**** Single-thread test ****\n";
    PrintThroughput(result);
 }
 
@@ -230,6 +231,7 @@ void TestMT()
 
    const auto result = EvalThroughput({{"t"}, {"test1.root", "test2.root"}, {"x"}}, 4);
    assert(result.fUncompressedBytesRead == 80000000 && "Wrong number of bytes read");
+   std::cout << "\n**** Multi-thread test ****\n";
    PrintThroughput(result);
 }
 
