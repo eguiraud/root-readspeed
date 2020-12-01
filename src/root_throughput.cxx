@@ -89,10 +89,14 @@ Result EvalThroughputMT(const Data &, unsigned)
 
 Result EvalThroughput(const Data &d, unsigned nThreads)
 {
-   // TODO sanity checks on d
-   if (gDebug > 0) {
-      // TODO print what branches we are going to read etc.
-   }
+   if (d.fTreeNames.empty())
+      throw std::runtime_error("Please provide at least one tree name");
+   if (d.fFileNames.empty())
+      throw std::runtime_error("Please provide at least one file name");
+   if (d.fBranchNames.empty())
+      throw std::runtime_error("Please provide at least one branch name");
+   if (d.fTreeNames.size() != 1 && d.fTreeNames.size() != d.fFileNames.size())
+      throw std::runtime_error("Please provide either one tree name or as many as the file names");
 
    return nThreads > 0 ? EvalThroughputMT(d, nThreads) : EvalThroughputST(d);
 }
