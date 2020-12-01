@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <ctime>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -35,10 +36,10 @@ struct Result {
 ULong64_t
 ReadTree(const std::string &treeName, const std::string &fileName, const std::vector<std::string> &branchNames)
 {
-   TFile f(fileName.c_str());
-   if (f.IsZombie())
+   auto f = std::unique_ptr<TFile>(TFile::Open(fileName.c_str())); // TFile::Open uses plug-ins if needed
+   if (f->IsZombie())
       throw std::runtime_error("There was a problem opening file \"" + fileName + '"');
-   auto *t = f.Get<TTree>(treeName.c_str());
+   auto *t = f->Get<TTree>(treeName.c_str());
    if (t == nullptr)
       throw std::runtime_error("There was a problem retrieving TTree \"" + treeName + "\" from file \"" + fileName +
                                '"');
