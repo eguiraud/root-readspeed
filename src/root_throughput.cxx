@@ -31,7 +31,9 @@ struct Result {
    ULong64_t fUncompressedBytesRead;
 };
 
-ULong64_t ReadTree(const std::string &treeName, const std::string &fileName, const std::vector<std::string> &branchNames)
+// Read branches listed in branchNames in tree treeName in file fileName, return number of uncompressed bytes read.
+ULong64_t
+ReadTree(const std::string &treeName, const std::string &fileName, const std::vector<std::string> &branchNames)
 {
    TFile f(fileName.c_str());
    if (f.IsZombie())
