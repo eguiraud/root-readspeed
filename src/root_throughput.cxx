@@ -29,11 +29,17 @@ struct Data {
 };
 
 struct Result {
-   /// Elapsed real time spent reading and decompressing all data, in seconds.
+   /// Real time spent reading and decompressing all data, in seconds.
    double fRealTime;
+   /// CPU time spent reading and decompressing all data, in seconds.
    double fCpuTime;
-   // TODO returning zipped bytes read too might be interesting, e.g. to estimate network I/O speed
+   /// Real time spent preparing the multi-thread workload.
+   double fMTSetupRealTime;
+   /// CPU time spent preparing the multi-thread workload.
+   double fMTSetupCpuTime;
+   /// Number of uncompressed bytes read in total from TTree branches.
    ULong64_t fUncompressedBytesRead;
+   // TODO returning zipped bytes read too might be interesting, e.g. to estimate network I/O speed
 };
 
 struct EntryRange {
@@ -94,7 +100,7 @@ Result EvalThroughputST(const Data &d)
 
    sw.Stop();
 
-   return {sw.RealTime(), sw.CpuTime(), bytesRead};
+   return {sw.RealTime(), sw.CpuTime(), 0., 0., bytesRead};
 }
 
 // Return a vector of EntryRanges per file, i.e. a vector of vectors of EntryRanges with outer size equal to
@@ -163,10 +169,7 @@ Result EvalThroughputMT(const Data &d, unsigned nThreads)
 
    sw.Stop();
 
-   std::cout << "Real time to retrieve cluster boundaries (included in total time):\t\t\t" << clsw.RealTime() << " s\n";
-   std::cout << "CPU time to retrieve cluster boundaries (included in total time):\t\t\t" << clsw.CpuTime() << " s\n";
-
-   return {sw.RealTime(), sw.CpuTime(), bytesRead};
+   return {sw.RealTime(), sw.CpuTime(), clsw.RealTime(), clsw.CpuTime(), bytesRead};
 }
 
 Result EvalThroughput(const Data &d, unsigned nThreads)
@@ -185,9 +188,15 @@ Result EvalThroughput(const Data &d, unsigned nThreads)
 
 void PrintThroughput(const Result &r)
 {
+   if (r.fMTSetupRealTime > 0.) {
+      std::cout << "Real time to setup MT run:\t" << r.fMTSetupRealTime << " s\n";
+      std::cout << "CPU time to setup MT run:\t" << r.fMTSetupCpuTime << " s\n";
+   }
+
    std::cout << "Real time:\t\t\t" << r.fRealTime << " s\n";
    std::cout << "CPU time:\t\t\t" << r.fCpuTime << " s\n";
    std::cout << "Uncompressed data read:\t\t" << r.fUncompressedBytesRead << " bytes\n";
+
    std::cout << "Throughput:\t\t\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
 }
 
