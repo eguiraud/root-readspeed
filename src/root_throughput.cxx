@@ -32,9 +32,14 @@ struct Result {
    ULong64_t fUncompressedBytesRead;
 };
 
+struct EntryRange {
+   Long64_t fStart = -1;
+   Long64_t fEnd = -1;
+};
+
 // Read branches listed in branchNames in tree treeName in file fileName, return number of uncompressed bytes read.
-ULong64_t
-ReadTree(const std::string &treeName, const std::string &fileName, const std::vector<std::string> &branchNames)
+ULong64_t ReadTree(const std::string &treeName, const std::string &fileName,
+                   const std::vector<std::string> &branchNames, EntryRange range = {-1, -1})
 {
    auto f = std::unique_ptr<TFile>(TFile::Open(fileName.c_str())); // TFile::Open uses plug-ins if needed
    if (f->IsZombie())
@@ -55,9 +60,10 @@ ReadTree(const std::string &treeName, const std::string &fileName, const std::ve
    };
    std::transform(branchNames.begin(), branchNames.end(), branches.begin(), getBranch);
 
-   const auto nEntries = t->GetEntries();
+   if (range.fStart == -1ll)
+      range = EntryRange{0, t->GetEntries()};
    ULong64_t bytesRead = 0;
-   for (auto e = 0ll; e < nEntries; ++e)
+   for (auto e = range.fStart; e < range.fEnd; ++e)
       for (auto b : branches)
          bytesRead += b->GetEntry(e);
 
