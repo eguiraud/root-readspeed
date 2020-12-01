@@ -237,6 +237,8 @@ void TestMT()
 
 int main()
 {
+   // The way these are ordered makes TestMT look like scaling is better than ideal.
+   // There is some work that is performed only by the first test, e.g. construction of streamers.
    TestST();
    TestMT();
 
