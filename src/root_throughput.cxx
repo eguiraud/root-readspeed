@@ -103,10 +103,10 @@ Result EvalThroughput(const Data &d, unsigned nThreads)
 
 void PrintThroughput(const Result &r)
 {
-   std::cout << "Real time: " << r.fRealTime << " s\n";
-   std::cout << "CPU time: " << r.fCpuTime << " s\n";
-   std::cout << "Uncompressed data read: " << r.fUncompressedBytesRead << " bytes\n";
-   std::cout << "Throughput: " << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
+   std::cout << "Real time:\t\t\t" << r.fRealTime << " s\n";
+   std::cout << "CPU time:\t\t\t" << r.fCpuTime << " s\n";
+   std::cout << "Uncompressed data read:\t\t" << r.fUncompressedBytesRead << " bytes\n";
+   std::cout << "Throughput:\t\t\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
 }
 
 void Test()
