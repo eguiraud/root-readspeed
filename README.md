@@ -16,6 +16,8 @@ Uncompressed data read:         80000000 bytes
 Throughput:                     155.543 MB/s
 ```
 
+#### Beware of caching
+
 If data is stored on a local disk, the operating system might cache all or part of it in memory after the first read. If this is indeed the scenario in which the application will run, no problem. If, in "real life", data is typically only read once in a while and should not be expected to be available in the filesystem cache, consider clearing the cache before running `root-throughput` (e.g., on most Linux systems, by executing `echo 3 > /proc/sys/vm/drop_caches` as a superuser).
 
 ### Ok but what do I do with this information?
