@@ -62,8 +62,13 @@ ULong64_t ReadTree(const std::string &treeName, const std::string &fileName,
    };
    std::transform(branchNames.begin(), branchNames.end(), branches.begin(), getBranch);
 
+   const auto nEntries = t->GetEntries();
    if (range.fStart == -1ll)
-      range = EntryRange{0, t->GetEntries()};
+      range = EntryRange{0ll, nEntries};
+   else if (range.fEnd > nEntries)
+      throw std::runtime_error("Range end (" + std::to_string(range.fEnd) + ") is beyod the end of tree \"" +
+                               t->GetName() + "\" in file \"" + t->GetCurrentFile()->GetName() + "\" with " +
+                               std::to_string(nEntries) + " entries.");
    ULong64_t bytesRead = 0;
    for (auto e = range.fStart; e < range.fEnd; ++e)
       for (auto b : branches)
