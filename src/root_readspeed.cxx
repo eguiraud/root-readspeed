@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -276,12 +277,67 @@ void TestMT()
    PrintThroughput(result);
 }
 
-int main()
+struct Args {
+   Data fData;
+   unsigned int fNThreads = 0;
+   bool fShouldRun = false;
+};
+
+Args ParseArgs(int argc, char **argv)
 {
-   // The way these are ordered makes TestMT look like scaling is better than ideal.
-   // There is some work that is performed only by the first test, e.g. construction of streamers.
-   TestST();
-   TestMT();
+   // Print help message and exit if "--help"
+   if (argc < 2 || (argc == 2 && (std::strcmp(argv[1], "--help") == 0 || std::strcmp(argv[1], "-h") == 0))) {
+      std::cout << "Usage:\n"
+                << "  root-readspeed --trees tname1 [tname2 ...] --files fname1 [fname2 ...]\n"
+                << "                 --branches bname1 [bname2 ...] [--threads nthreads]\n"
+                << "  root-readspeed --test\n"
+                << "  root-readspeed (--help|-h)\n";
+      return {};
+   }
+
+   // Run tests and exit if "--test"
+   if (argc == 2 && std::strcmp(argv[1], "--test") == 0) {
+      // The way these are ordered makes TestMT look like scaling is better than ideal on my workstation.
+      // There is some work that is performed only by the first test, e.g. construction of streamers.
+      TestST();
+      TestMT();
+      return {};
+   }
+
+   Data d;
+   unsigned int nThreads = 0;
+
+   enum class EArgState { kNone, kTrees, kFiles, kBranches, kThreads } argState = EArgState::kNone;
+   for (int i = 1; i < argc; ++i) {
+      if (std::strcmp(argv[i], "--trees") == 0)
+         argState = EArgState::kTrees;
+      else if (std::strcmp(argv[i], "--files") == 0)
+         argState = EArgState::kFiles;
+      else if (std::strcmp(argv[i], "--branches") == 0)
+         argState = EArgState::kBranches;
+      else if (std::strcmp(argv[i], "--threads") == 0)
+         argState = EArgState::kThreads;
+      else {
+         switch (argState) {
+         case EArgState::kTrees: d.fTreeNames.emplace_back(argv[i]); break;
+         case EArgState::kFiles: d.fFileNames.emplace_back(argv[i]); break;
+         case EArgState::kBranches: d.fBranchNames.emplace_back(argv[i]); break;
+         case EArgState::kThreads: nThreads = std::atoi(argv[i]); break;
+         default: std::cerr << "Unrecognized option \"" << argv[i] << "\"\n"; return {};
+         }
+      }
+   }
+
+   return Args{std::move(d), nThreads, /*fShouldRun=*/true};
+}
+
+int main(int argc, char **argv)
+{
+   const auto args = ParseArgs(argc, argv);
+   if (!args.fShouldRun)
+      return 1; // ParseArgs has printed the --help, has run the --test or has encountered an issue and logged about it
+
+   PrintThroughput(EvalThroughput(args.fData, args.fNThreads));
 
    return 0;
 }
