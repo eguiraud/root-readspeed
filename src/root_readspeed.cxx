@@ -106,7 +106,8 @@ Result EvalThroughputST(const Data &d)
 
 // Return a vector of EntryRanges per file, i.e. a vector of vectors of EntryRanges with outer size equal to
 // d.fFileNames.
-std::vector<std::vector<EntryRange>> GetClusters(const Data &d) {
+std::vector<std::vector<EntryRange>> GetClusters(const Data &d)
+{
    auto treeIdx = 0;
    const auto nFiles = d.fFileNames.size();
    std::vector<std::vector<EntryRange>> ranges(nFiles);
@@ -192,12 +193,11 @@ Result EvalThroughputMT(const Data &d, unsigned nThreads)
    // for each cluster, spawn a reading task
    std::atomic_ullong bytesRead{0};
 
-
-   auto processFile = [&] (int fileIdx) mutable {
+   auto processFile = [&](int fileIdx) mutable {
       const auto &fileName = d.fFileNames[fileIdx];
       const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
 
-      auto processCluster = [&] (const EntryRange &range) mutable {
+      auto processCluster = [&](const EntryRange &range) mutable {
          bytesRead += ReadTree(treeName, fileName, d.fBranchNames, range);
       };
 
@@ -243,7 +243,7 @@ void PrintThroughput(const Result &r)
 void RequireFile(const std::string &fname)
 {
    if (gSystem->AccessPathName(fname.c_str()) == false) // then the file already exists: weird return value convention
-      return; // nothing to do
+      return;                                           // nothing to do
 
    TFile f(fname.c_str(), "recreate");
    TTree t("t", "t");
