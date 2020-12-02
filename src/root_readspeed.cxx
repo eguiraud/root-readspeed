@@ -3,6 +3,7 @@
 
 #include <ROOT/TSeq.hxx>
 #include <ROOT/TThreadExecutor.hxx>
+#include <ROOT/TTreeProcessorMT.hxx> // for TTreeProcessorMT::GetMaxTasksPerFilePerWorker
 #include <TBranch.h>
 #include <TFile.h>
 #include <TStopwatch.h>
@@ -133,23 +134,64 @@ std::vector<std::vector<EntryRange>> GetClusters(const Data &d) {
    return ranges;
 }
 
-std::vector<std::vector<EntryRange>> MergeClusters(std::vector<std::vector<EntryRange>> &&clusters)
+// Mimic the logic of TTreeProcessorMT::MakeClusters: merge entry ranges together such that we never
+// run more than TTreeProcessorMT::GetMaxTasksPerFilePerWorker tasks per file per worker thread.
+std::vector<std::vector<EntryRange>>
+MergeClusters(std::vector<std::vector<EntryRange>> &&clusters, unsigned int threadPoolSize)
 {
-   // TODO to implement
-   return std::move(clusters);
+   const auto maxTasksPerFile = ROOT::TTreeProcessorMT::GetMaxTasksPerFilePerWorker() * threadPoolSize;
+
+   std::vector<std::vector<EntryRange>> mergedClusters(clusters.size());
+
+   auto clustersIt = clusters.begin();
+   auto mergedClustersIt = mergedClusters.begin();
+   for (; clustersIt != clusters.end(); clustersIt++, mergedClustersIt++) {
+      const auto nClustersInThisFile = clustersIt->size();
+      const auto nFolds = nClustersInThisFile / maxTasksPerFile;
+      // If the number of clusters is less than maxTasksPerFile
+      // we take the clusters as they are
+      if (nFolds == 0) {
+         *mergedClustersIt = *clustersIt;
+         continue;
+      }
+      // Otherwise, we have to merge clusters, distributing the reminder evenly
+      // between the first clusters
+      auto nReminderClusters = nClustersInThisFile % maxTasksPerFile;
+      const auto &clustersInThisFile = *clustersIt;
+      for (auto i = 0ULL; i < nClustersInThisFile; ++i) {
+         const auto start = clustersInThisFile[i].fStart;
+         // We lump together at least nFolds clusters, therefore
+         // we need to jump ahead of nFolds-1.
+         i += (nFolds - 1);
+         // We now add a cluster if we have some reminder left
+         if (nReminderClusters > 0) {
+            i += 1U;
+            nReminderClusters--;
+         }
+         const auto end = clustersInThisFile[i].fEnd;
+         mergedClustersIt->emplace_back(EntryRange({start, end}));
+      }
+      assert(nReminderClusters == 0 && "This should never happen, cluster-merging logic is broken.");
+   }
+
+   return mergedClusters;
 }
 
 Result EvalThroughputMT(const Data &d, unsigned nThreads)
 {
+   ROOT::TThreadExecutor pool(nThreads);
+   const auto actualThreads = ROOT::GetThreadPoolSize();
+   if (actualThreads != nThreads)
+      std::cerr << "Running with " << actualThreads << " threads even though " << nThreads << " were requested.\n";
+
    TStopwatch clsw;
    clsw.Start();
-   const auto clusters = MergeClusters(GetClusters(d));
+   const auto clusters = MergeClusters(GetClusters(d), actualThreads);
    clsw.Stop();
 
    // for each cluster, spawn a reading task
    std::atomic_ullong bytesRead{0};
 
-   ROOT::TThreadExecutor pool(nThreads);
 
    auto processFile = [&] (int fileIdx) mutable {
       const auto &fileName = d.fFileNames[fileIdx];
