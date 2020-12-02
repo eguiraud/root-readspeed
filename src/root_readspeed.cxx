@@ -270,9 +270,9 @@ void TestMT()
    RequireFile("test1.root");
    RequireFile("test2.root");
 
-   const auto result = EvalThroughput({{"t"}, {"test1.root", "test2.root"}, {"x"}}, 4);
+   const auto result = EvalThroughput({{"t"}, {"test1.root", "test2.root"}, {"x"}}, 2);
    assert(result.fUncompressedBytesRead == 80000000 && "Wrong number of bytes read");
-   std::cout << "\n**** Multi-thread test ****\n";
+   std::cout << "\n**** Multi-thread test (2 threads) ****\n";
    PrintThroughput(result);
 }
 
