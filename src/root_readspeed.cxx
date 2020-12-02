@@ -55,18 +55,18 @@ ULong64_t ReadTree(const std::string &treeName, const std::string &fileName,
 {
    auto f = std::unique_ptr<TFile>(TFile::Open(fileName.c_str())); // TFile::Open uses plug-ins if needed
    if (f->IsZombie())
-      throw std::runtime_error("There was a problem opening file \"" + fileName + '"');
+      throw std::runtime_error("There was a problem opening file '" + fileName + '\'');
    auto *t = f->Get<TTree>(treeName.c_str());
    if (t == nullptr)
-      throw std::runtime_error("There was a problem retrieving TTree \"" + treeName + "\" from file \"" + fileName +
-                               '"');
+      throw std::runtime_error("There was a problem retrieving tree '" + treeName + "' from file '" + fileName +
+                               '\'');
    t->SetBranchStatus("*", 0);
    std::vector<TBranch *> branches(branchNames.size());
    auto getBranch = [t](const std::string &bName) {
       auto *b = t->GetBranch(bName.c_str());
       if (b == nullptr)
-         throw std::runtime_error("There was a problem retrieving TBranch \"" + bName + "\" from TTree \"" +
-                                  t->GetName() + "\" in file \"" + t->GetCurrentFile()->GetName() + '"');
+         throw std::runtime_error("There was a problem retrieving branch '" + bName + "' from tree '" +
+                                  t->GetName() + "' in file '" + t->GetCurrentFile()->GetName() + '\'');
       b->SetStatus(1);
       return b;
    };
@@ -76,8 +76,8 @@ ULong64_t ReadTree(const std::string &treeName, const std::string &fileName,
    if (range.fStart == -1ll)
       range = EntryRange{0ll, nEntries};
    else if (range.fEnd > nEntries)
-      throw std::runtime_error("Range end (" + std::to_string(range.fEnd) + ") is beyod the end of tree \"" +
-                               t->GetName() + "\" in file \"" + t->GetCurrentFile()->GetName() + "\" with " +
+      throw std::runtime_error("Range end (" + std::to_string(range.fEnd) + ") is beyod the end of tree '" +
+                               t->GetName() + "' in file '" + t->GetCurrentFile()->GetName() + "' with " +
                                std::to_string(nEntries) + " entries.");
    ULong64_t bytesRead = 0;
    for (auto e = range.fStart; e < range.fEnd; ++e)
@@ -116,12 +116,12 @@ std::vector<std::vector<EntryRange>> GetClusters(const Data &d)
       const auto &fileName = d.fFileNames[fileIdx];
       std::unique_ptr<TFile> f(TFile::Open(fileName.c_str()));
       if (f->IsZombie())
-         throw std::runtime_error("There was a problem opening file \"" + fileName + '"');
+         throw std::runtime_error("There was a problem opening file '" + fileName + '\'');
       const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
       auto *t = f->Get<TTree>(treeName.c_str()); // TFile owns this TTree
       if (t == nullptr)
-         throw std::runtime_error("There was a problem retrieving TTree \"" + treeName + "\" from file \"" + fileName +
-                                  '"');
+         throw std::runtime_error("There was a problem retrieving TTree '" + treeName + "' from file '" + fileName +
+                                  '\'');
 
       const auto nEntries = t->GetEntries();
       auto it = t->GetClusterIterator(0);
@@ -323,7 +323,7 @@ Args ParseArgs(int argc, char **argv)
          case EArgState::kFiles: d.fFileNames.emplace_back(argv[i]); break;
          case EArgState::kBranches: d.fBranchNames.emplace_back(argv[i]); break;
          case EArgState::kThreads: nThreads = std::atoi(argv[i]); break;
-         default: std::cerr << "Unrecognized option \"" << argv[i] << "\"\n"; return {};
+         default: std::cerr << "Unrecognized option '" << argv[i] << "'\n"; return {};
          }
       }
    }
