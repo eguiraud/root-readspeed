@@ -73,5 +73,5 @@ In an environment in which a recent-enough ROOT installation is present (only te
 $ cd root-readspeed/
 $ mkdir build && cd build
 $ cmake .. && cmake --build . [-- -j4]
-$ ./src/root-readspeed # runs a couple of tests
+$ ./src/root-readspeed --test
 ```
