@@ -55,18 +55,17 @@ ULong64_t ReadTree(const std::string &treeName, const std::string &fileName,
 {
    auto f = std::unique_ptr<TFile>(TFile::Open(fileName.c_str())); // TFile::Open uses plug-ins if needed
    if (f->IsZombie())
-      throw std::runtime_error("There was a problem opening file '" + fileName + '\'');
+      throw std::runtime_error("Could not open file '" + fileName + '\'');
    auto *t = f->Get<TTree>(treeName.c_str());
    if (t == nullptr)
-      throw std::runtime_error("There was a problem retrieving tree '" + treeName + "' from file '" + fileName +
-                               '\'');
+      throw std::runtime_error("Could not retrieve tree '" + treeName + "' from file '" + fileName + '\'');
    t->SetBranchStatus("*", 0);
    std::vector<TBranch *> branches(branchNames.size());
    auto getBranch = [t](const std::string &bName) {
       auto *b = t->GetBranch(bName.c_str());
       if (b == nullptr)
-         throw std::runtime_error("There was a problem retrieving branch '" + bName + "' from tree '" +
-                                  t->GetName() + "' in file '" + t->GetCurrentFile()->GetName() + '\'');
+         throw std::runtime_error("Could not retrieve branch '" + bName + "' from tree '" + t->GetName() +
+                                  "' in file '" + t->GetCurrentFile()->GetName() + '\'');
       b->SetStatus(1);
       return b;
    };
