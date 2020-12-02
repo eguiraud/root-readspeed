@@ -4,16 +4,23 @@ A tool to measure what throughput can be expected from ROOT for a given combinat
 
 ## Usage
 
-```bash
-$ root-readspeed --trees t --files f1.root f2.root --branches x y z --threads 4
+```
+root-readspeed --trees tname1 [tname2 ...] --files fname1 [fname2 ...]
+               --branches bname1 [bname2 ...] [--threads nthreads]
+root-readspeed --test
+root-readspeed (--help|-h)
+```
 
-**** Multi-thread test ****
-Real time to setup MT run:      0.190665 s
-CPU time to setup MT run:       0.18 s
-Real time:                      0.490502 s
-CPU time:                       0.98 s
+### Example
+
+```bash
+$ ./src/root-readspeed --trees t --files test1.root test2.root --threads 2 --branches x
+Real time to setup MT run:      0.0862889 s
+CPU time to setup MT run:       0.09 s
+Real time:                      0.172477 s
+CPU time:                       0.34 s
 Uncompressed data read:         80000000 bytes
-Throughput:                     155.543 MB/s
+Throughput:                     442.343 MB/s
 ```
 
 ### Beware of caching
