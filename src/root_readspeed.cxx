@@ -3,7 +3,7 @@
 
 #include <ROOT/TSeq.hxx>
 #include <ROOT/TThreadExecutor.hxx>
-#include <ROOT/TTreeProcessorMT.hxx> // for TTreeProcessorMT::GetMaxTasksPerFilePerWorker
+#include <ROOT/TTreeProcessorMT.hxx> // for TTreeProcessorMT::GetTasksPerWorkerHint
 #include <TBranch.h>
 #include <TFile.h>
 #include <TStopwatch.h>
@@ -13,7 +13,8 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
-#include <cstring>
+#include <cstring> // std::strcmp
+#include <cmath> // std::ceil
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -135,13 +136,12 @@ std::vector<std::vector<EntryRange>> GetClusters(const Data &d)
    return ranges;
 }
 
-// Mimic the logic of TTreeProcessorMT::MakeClusters: merge entry ranges together such that we never
-// run more than TTreeProcessorMT::GetMaxTasksPerFilePerWorker tasks per file per worker thread.
+// Mimic the logic of TTreeProcessorMT::MakeClusters: merge entry ranges together such that we
+// run around TTreeProcessorMT::GetTasksPerWorkerHint tasks per worker thread.
+// TODO it would be better to expose TTreeProcessorMT's actual logic and call the exact same method from here
 std::vector<std::vector<EntryRange>>
-MergeClusters(std::vector<std::vector<EntryRange>> &&clusters, unsigned int threadPoolSize)
+MergeClusters(std::vector<std::vector<EntryRange>> &&clusters, unsigned int maxTasksPerFile)
 {
-   const auto maxTasksPerFile = ROOT::TTreeProcessorMT::GetMaxTasksPerFilePerWorker() * threadPoolSize;
-
    std::vector<std::vector<EntryRange>> mergedClusters(clusters.size());
 
    auto clustersIt = clusters.begin();
@@ -187,7 +187,10 @@ Result EvalThroughputMT(const Data &d, unsigned nThreads)
 
    TStopwatch clsw;
    clsw.Start();
-   const auto clusters = MergeClusters(GetClusters(d), actualThreads);
+   const unsigned int maxTasksPerFile =
+      std::ceil(float(ROOT::TTreeProcessorMT::GetTasksPerWorkerHint() * actualThreads) / float(d.fFileNames.size()));
+
+   const auto clusters = MergeClusters(GetClusters(d), maxTasksPerFile);
    clsw.Stop();
 
    // for each cluster, spawn a reading task
