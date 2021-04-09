@@ -25,7 +25,6 @@ struct Data {
    /// Either a single tree name common for all files, or one tree name per file.
    std::vector<std::string> fTreeNames;
    /// List of input files.
-   // TODO add support for globbing
    std::vector<std::string> fFileNames;
    /// Branches to read.
    std::vector<std::string> fBranchNames;
