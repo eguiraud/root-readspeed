@@ -12,3 +12,7 @@ else()
    message(STATUS "Setting up doctest testing framework - ERROR")
 endif()
 add_subdirectory(${doctest_SOURCE_DIR} ${doctest_BINARY_DIR})
+
+# Add tests
+add_executable(tests tests.cpp)
+target_link_libraries(tests PRIVATE doctest::doctest ReadSpeed::ReadSpeed)
