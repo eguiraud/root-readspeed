@@ -190,26 +190,28 @@ Result EvalThroughputMT(const Data &d, unsigned nThreads)
    const unsigned int maxTasksPerFile =
       std::ceil(float(ROOT::TTreeProcessorMT::GetTasksPerWorkerHint() * actualThreads) / float(d.fFileNames.size()));
 
-   const auto clusters = MergeClusters(GetClusters(d), maxTasksPerFile);
+   const auto rangesPerFile = MergeClusters(GetClusters(d), maxTasksPerFile);
    clsw.Stop();
 
-   // for each cluster, spawn a reading task
-   std::atomic_ullong bytesRead{0};
+   // for each file, for each range, spawn a reading task
+   auto sumBytes = [](const std::vector<ULong64_t> &bytesRead) -> ULong64_t {
+      return std::accumulate(bytesRead.begin(), bytesRead.end(), 0ull);
+   };
 
-   auto processFile = [&](int fileIdx) mutable {
+   auto processFile = [&](int fileIdx) {
       const auto &fileName = d.fFileNames[fileIdx];
       const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
 
-      auto processCluster = [&](const EntryRange &range) mutable {
-         bytesRead += ReadTree(treeName, fileName, d.fBranchNames, range);
+      auto readRange = [&](const EntryRange &range) -> ULong64_t {
+         return ReadTree(treeName, fileName, d.fBranchNames, range);
       };
 
-      pool.Foreach(processCluster, clusters[fileIdx]);
+      return pool.MapReduce(readRange, rangesPerFile[fileIdx], sumBytes);
    };
 
    TStopwatch sw;
    sw.Start();
-   pool.Foreach(processFile, ROOT::TSeqUL{d.fFileNames.size()});
+   const auto bytesRead = pool.MapReduce(processFile, ROOT::TSeqUL{d.fFileNames.size()}, sumBytes);
    sw.Stop();
 
    return {sw.RealTime(), sw.CpuTime(), clsw.RealTime(), clsw.CpuTime(), bytesRead};
