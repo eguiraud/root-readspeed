@@ -6,7 +6,12 @@ if(NOT CMAKE_BUILD_TYPE)
    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (Release/RelWithDebInfo/Debug)." FORCE)
    message(STATUS "Build type not specified, defaulting to ${CMAKE_BUILD_TYPE}.")
 endif()
+option(ROOTREADSPEED_TESTS "Set to ON to build unit tests." OFF)
 
 find_package(ROOT REQUIRED COMPONENTS Tree)
 
 add_subdirectory(src)
+
+if (ROOTREADSPEED_TESTS)
+   add_subdirectory(test)
+endif()
