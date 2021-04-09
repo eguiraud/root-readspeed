@@ -47,7 +47,7 @@ The numbers reported can also be used to figure out what the runtime bottleneck 
 ### Application logic is the bottleneck
 
 If the `Real time` number returned by this tool is significantly lower than what the actual analysis takes when running on the same data in the same environment, this indicates that runtimes are probably dominated by the analysis' logic itself, and optimizing this logic might result in visible speed improvements.
-Increasing the number of cores might also provide performance benefits if the slow parts of the analysis' logc can be parallelized.
+Increasing the number of cores might also provide performance benefits if the slow parts of the analysis' logic can be parallelized.
 
 On Linux, tools such as [perf and flamegraphs](http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html) can be used to inspect where the program spends its CPU cycles.
 
@@ -75,4 +75,4 @@ $ cmake [-DROOTREADSPEED_TESTS=ON] .. && cmake --build . [-- -j4]
 $ ./src/root-readspeed --test
 ```
 
-The tip of the main branch requires ROOT v6.24 or later. Tag `compiles-with-v6.22` points to an older reivision which works with v6.22.
+The tip of the main branch requires ROOT v6.24 or later. Tag [`compiles-with-v6.22`](https://github.com/eguiraud/root-readspeed/tree/compiles-with-v6.22) points to an older revision which works with v6.22.
