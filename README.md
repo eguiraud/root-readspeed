@@ -7,7 +7,6 @@ A tool to measure what throughput can be expected from ROOT for a given combinat
 ```
 root-readspeed --trees tname1 [tname2 ...] --files fname1 [fname2 ...]
                --branches bname1 [bname2 ...] [--threads nthreads]
-root-readspeed --test
 root-readspeed (--help|-h)
 ```
 
@@ -67,11 +66,13 @@ If `Real time` is around the same as `CPU time / number of threads` and `Through
 
 ## Building root-readspeed
 
-In an environment in which a recent-enough ROOT installation is present (only tested with 6.22, but anything from 6.18 onwards should work):
+In an environment in which a recent-enough ROOT installation is present:
 
 ```bash
 $ cd root-readspeed/
 $ mkdir build && cd build
-$ cmake .. && cmake --build . [-- -j4]
+$ cmake [-DROOTREADSPEED_TESTS=ON] .. && cmake --build . [-- -j4]
 $ ./src/root-readspeed --test
 ```
+
+The tip of the main branch requires ROOT v6.24 or later. Tag `compiles-with-v6.22` points to an older reivision which works with v6.22.
