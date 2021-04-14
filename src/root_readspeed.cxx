@@ -10,6 +10,8 @@ using namespace ReadSpeed;
 
 void PrintThroughput(const Result &r)
 {
+   std::cout << "Thread pool size:\t\t" << r.fThreadPoolSize << '\n';
+
    if (r.fMTSetupRealTime > 0.) {
       std::cout << "Real time to setup MT run:\t" << r.fMTSetupRealTime << " s\n";
       std::cout << "CPU time to setup MT run:\t" << r.fMTSetupCpuTime << " s\n";

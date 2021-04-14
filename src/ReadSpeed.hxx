@@ -42,6 +42,8 @@ struct Result {
    double fMTSetupCpuTime;
    /// Number of uncompressed bytes read in total from TTree branches.
    ULong64_t fUncompressedBytesRead;
+   /// Size of ROOT's thread pool for the run (0 indicates a single-thread run with no thread pool present).
+   unsigned int fThreadPoolSize;
    // TODO returning zipped bytes read too might be interesting, e.g. to estimate network I/O speed
 };
 
@@ -102,7 +104,7 @@ inline Result EvalThroughputST(const Data &d)
 
    sw.Stop();
 
-   return {sw.RealTime(), sw.CpuTime(), 0., 0., bytesRead};
+   return {sw.RealTime(), sw.CpuTime(), 0., 0., bytesRead, 0};
 }
 
 // Return a vector of EntryRanges per file, i.e. a vector of vectors of EntryRanges with outer size equal to
@@ -214,7 +216,7 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
    const auto bytesRead = pool.MapReduce(processFile, ROOT::TSeqUL{d.fFileNames.size()}, sumBytes);
    sw.Stop();
 
-   return {sw.RealTime(), sw.CpuTime(), clsw.RealTime(), clsw.CpuTime(), bytesRead};
+   return {sw.RealTime(), sw.CpuTime(), clsw.RealTime(), clsw.CpuTime(), bytesRead, actualThreads};
 }
 
 inline Result EvalThroughput(const Data &d, unsigned nThreads)
