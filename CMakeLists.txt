@@ -8,7 +8,9 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 option(ROOTREADSPEED_TESTS "Set to ON to build unit tests." OFF)
 
+message(STATUS "Looking for ROOT")
 find_package(ROOT REQUIRED COMPONENTS Tree)
+message(STATUS "ROOT ${ROOT_VERSION} found at ${ROOT_BINDIR}")
 
 add_subdirectory(src)
 
