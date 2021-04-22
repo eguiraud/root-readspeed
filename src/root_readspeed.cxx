@@ -21,7 +21,7 @@ void PrintThroughput(const Result &r)
    std::cout << "CPU time:\t\t\t" << r.fCpuTime << " s\n";
    std::cout << "Uncompressed data read:\t\t" << r.fUncompressedBytesRead << " bytes\n";
 
-   std::cout << "Throughput:\t\t\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
+   std::cout << "Throughput:\t\t\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 / r.fThreadPoolSize<< " MB/s/thread for " << r.fThreadPoolSize<< " threads\n";
 }
 
 struct Args {
