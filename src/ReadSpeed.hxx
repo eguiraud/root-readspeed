@@ -203,6 +203,12 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
    const auto rangesPerFile = MergeClusters(GetClusters(d), maxTasksPerFile);
    clsw.Stop();
 
+   size_t nranges = 0;
+   for(auto &r : rangesPerFile) {
+       nranges += r.size();
+   }
+   std::cout << "Total number of cluster ranges: " << nranges << "\n";
+
    // for each file, for each range, spawn a reading task
    auto sumBytes = [](const std::vector<ULong64_t> &bytesRead) -> ULong64_t {
       return std::accumulate(bytesRead.begin(), bytesRead.end(), 0ull);
