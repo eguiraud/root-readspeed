@@ -44,7 +44,7 @@ Args ParseArgs(int argc, char **argv)
    Data d;
    unsigned int nThreads = 0;
 
-   enum class EArgState { kNone, kTrees, kFiles, kBranches, kThreads } argState = EArgState::kNone;
+   enum class EArgState { kNone, kTrees, kFiles, kBranches, kThreads, kTasksPerWorkerHint } argState = EArgState::kNone;
    for (int i = 1; i < argc; ++i) {
       if (std::strcmp(argv[i], "--trees") == 0)
          argState = EArgState::kTrees;
@@ -54,12 +54,18 @@ Args ParseArgs(int argc, char **argv)
          argState = EArgState::kBranches;
       else if (std::strcmp(argv[i], "--threads") == 0)
          argState = EArgState::kThreads;
-      else {
+      else if (std::strcmp(argv[i], "--tasksPerWorker") == 0)
+        argState = EArgState::kTasksPerWorkerHint;
+      else if (argv[i][0] == '-') {
+        argState = EArgState::kNone;
+        std::cerr << "Unrecognized option '" << argv[i] << "'\n"; return {};
+      } else {
          switch (argState) {
          case EArgState::kTrees: d.fTreeNames.emplace_back(argv[i]); break;
          case EArgState::kFiles: d.fFileNames.emplace_back(argv[i]); break;
          case EArgState::kBranches: d.fBranchNames.emplace_back(argv[i]); break;
-         case EArgState::kThreads: nThreads = std::atoi(argv[i]); break;
+         case EArgState::kThreads: nThreads = std::atoi(argv[i]); argState = EArgState::kNone; break;
+         case EArgState::kTasksPerWorkerHint: ROOT::TTreeProcessorMT::SetTasksPerWorkerHint(std::atoi(argv[i])); argState = EArgState::kNone; break;
          default: std::cerr << "Unrecognized option '" << argv[i] << "'\n"; return {};
          }
       }
