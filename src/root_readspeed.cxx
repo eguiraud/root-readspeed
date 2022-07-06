@@ -38,6 +38,7 @@ Args ParseArgs(int argc, char **argv)
       std::cout << "Usage:\n"
                 << "  root-readspeed --trees tname1 [tname2 ...] --files fname1 [fname2 ...]\n"
                 << "                 --branches bname1 [bname2 ...] [--threads nthreads]\n"
+                << "                 [--regexOff]"
                 << "  root-readspeed (--help|-h)\n";
       return {};
    }
@@ -55,7 +56,10 @@ Args ParseArgs(int argc, char **argv)
          argState = EArgState::kBranches;
       else if (std::strcmp(argv[i], "--threads") == 0)
          argState = EArgState::kThreads;
-      else {
+      else if (std::strcmp(argv[i], "--regexOff") == 0) {
+         argState = EArgState::kNone;
+         d.fUseRegex = false;
+      } else {
          switch (argState) {
          case EArgState::kTrees: d.fTreeNames.emplace_back(argv[i]); break;
          case EArgState::kFiles: d.fFileNames.emplace_back(argv[i]); break;
