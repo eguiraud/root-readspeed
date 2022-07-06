@@ -42,6 +42,8 @@ struct Result {
    double fMTSetupCpuTime;
    /// Number of uncompressed bytes read in total from TTree branches.
    ULong64_t fUncompressedBytesRead;
+   /// Number of compressed bytes read in total from the TFiles.
+   ULong64_t fCompressedBytesRead;
    /// Size of ROOT's thread pool for the run (0 indicates a single-thread run with no thread pool present).
    unsigned int fThreadPoolSize;
    // TODO returning zipped bytes read too might be interesting, e.g. to estimate network I/O speed
@@ -52,8 +54,13 @@ struct EntryRange {
    Long64_t fEnd = -1;
 };
 
+struct ByteData {
+   ULong64_t fUncompressedBytesRead;
+   ULong64_t fCompressedBytesRead;
+};
+
 // Read branches listed in branchNames in tree treeName in file fileName, return number of uncompressed bytes read.
-inline ULong64_t ReadTree(const std::string &treeName, const std::string &fileName,
+inline ByteData ReadTree(const std::string &treeName, const std::string &fileName,
                           const std::vector<std::string> &branchNames, EntryRange range = {-1, -1})
 {
    // This logic avoids re-opening the same file many times if not needed
@@ -89,12 +96,16 @@ inline ULong64_t ReadTree(const std::string &treeName, const std::string &fileNa
       throw std::runtime_error("Range end (" + std::to_string(range.fEnd) + ") is beyod the end of tree '" +
                                t->GetName() + "' in file '" + t->GetCurrentFile()->GetName() + "' with " +
                                std::to_string(nEntries) + " entries.");
+   
    ULong64_t bytesRead = 0;
+   const ULong64_t fileStartBytes = f->GetBytesRead();
    for (auto e = range.fStart; e < range.fEnd; ++e)
       for (auto b : branches)
          bytesRead += b->GetEntry(e);
+   
+   const ULong64_t fileBytesRead = f->GetBytesRead() - fileStartBytes;
 
-   return bytesRead;
+   return { bytesRead, fileBytesRead };
 }
 
 inline Result EvalThroughputST(const Data &d)
@@ -103,16 +114,21 @@ inline Result EvalThroughputST(const Data &d)
    sw.Start();
 
    auto treeIdx = 0;
-   ULong64_t bytesRead = 0;
+   ULong64_t uncompressedBytesRead = 0;
+   ULong64_t compressedBytesRead = 0;
+
    for (const auto &fName : d.fFileNames) {
-      bytesRead += ReadTree(d.fTreeNames[treeIdx], fName, d.fBranchNames);
+      const auto byteData = ReadTree(d.fTreeNames[treeIdx], fName, d.fBranchNames);
+      uncompressedBytesRead += byteData.fUncompressedBytesRead;
+      compressedBytesRead += byteData.fCompressedBytesRead;
+
       if (d.fTreeNames.size() > 1)
          ++treeIdx;
    }
 
    sw.Stop();
 
-   return {sw.RealTime(), sw.CpuTime(), 0., 0., bytesRead, 0};
+   return {sw.RealTime(), sw.CpuTime(), 0., 0., uncompressedBytesRead, compressedBytesRead, 0};
 }
 
 // Return a vector of EntryRanges per file, i.e. a vector of vectors of EntryRanges with outer size equal to
@@ -204,15 +220,18 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
    clsw.Stop();
 
    // for each file, for each range, spawn a reading task
-   auto sumBytes = [](const std::vector<ULong64_t> &bytesRead) -> ULong64_t {
-      return std::accumulate(bytesRead.begin(), bytesRead.end(), 0ull);
+   auto sumBytes = [](const std::vector<ByteData> &bytesData) -> ByteData {
+      const auto uncompressedBytes = std::accumulate(bytesData.begin(), bytesData.end(), 0ull, [](int, const ByteData& o){ return o.fUncompressedBytesRead; });
+      const auto compressedBytes = std::accumulate(bytesData.begin(), bytesData.end(), 0ull, [](int, const ByteData& o){ return o.fCompressedBytesRead; });
+
+      return { uncompressedBytes, compressedBytes };
    };
 
    auto processFile = [&](int fileIdx) {
       const auto &fileName = d.fFileNames[fileIdx];
       const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
 
-      auto readRange = [&](const EntryRange &range) -> ULong64_t {
+      auto readRange = [&](const EntryRange &range) -> ByteData {
          return ReadTree(treeName, fileName, d.fBranchNames, range);
       };
 
@@ -221,10 +240,10 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
 
    TStopwatch sw;
    sw.Start();
-   const auto bytesRead = pool.MapReduce(processFile, ROOT::TSeqUL{d.fFileNames.size()}, sumBytes);
+   const auto totalByteData = pool.MapReduce(processFile, ROOT::TSeqUL{d.fFileNames.size()}, sumBytes);
    sw.Stop();
 
-   return {sw.RealTime(), sw.CpuTime(), clsw.RealTime(), clsw.CpuTime(), bytesRead, actualThreads};
+   return {sw.RealTime(), sw.CpuTime(), clsw.RealTime(), clsw.CpuTime(), totalByteData.fUncompressedBytesRead, totalByteData.fCompressedBytesRead, actualThreads};
 }
 
 inline Result EvalThroughput(const Data &d, unsigned nThreads)
