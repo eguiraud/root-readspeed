@@ -20,6 +20,7 @@ void PrintThroughput(const Result &r)
    std::cout << "Real time:\t\t\t" << r.fRealTime << " s\n";
    std::cout << "CPU time:\t\t\t" << r.fCpuTime << " s\n";
    std::cout << "Uncompressed data read:\t\t" << r.fUncompressedBytesRead << " bytes\n";
+   std::cout << "Compressed data read:\t\t" << r.fCompressedBytesRead << " bytes\n";
 
    std::cout << "Throughput:\t\t\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
 }
