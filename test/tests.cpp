@@ -63,7 +63,12 @@ TEST_CASE("Branch test")
    SUBCASE("No regex")
    {
       const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"."}, false}, 0);
-      CHECK_MESSAGE(result.fUncompressedBytesRead == 00000000, "Wrong number of bytes read");
+      CHECK_MESSAGE(result.fUncompressedBytesRead == 0, "Wrong number of bytes read");
+   }
+   SUBCASE("All branches")
+   {
+      const auto result = EvalThroughput({{"t"}, {"test3.root"}, {".*"}}, 0);
+      CHECK_MESSAGE(result.fUncompressedBytesRead == 160000000, "Wrong number of bytes read");
    }
    
    gSystem->Unlink("test3.root");
