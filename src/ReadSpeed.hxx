@@ -7,6 +7,8 @@
 #include <ROOT/TSeq.hxx>
 #include <ROOT/TThreadExecutor.hxx>
 #include <ROOT/TTreeProcessorMT.hxx> // for TTreeProcessorMT::GetTasksPerWorkerHint
+#include <ROOT/RDF/Utils.hxx>
+#include <TFriendElement.h>
 #include <TBranch.h>
 #include <TFile.h>
 #include <TStopwatch.h>
@@ -19,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <set>
 #include <regex>
 
 namespace ReadSpeed {
@@ -62,6 +65,56 @@ struct ByteData {
    ULong64_t fCompressedBytesRead;
 };
 
+// Gets the names of all branches in a tree, accounts for friends.
+// Copied straight from RDFInterfaceUtils
+void GetTopLevelBranchNamesImpl(TTree &t, std::set<std::string> &bNamesReg, ROOT::RDF::ColumnNames_t &bNames,
+                                std::set<TTree *> &analysedTrees, const std::string friendName = "")
+{
+   if (!analysedTrees.insert(&t).second) {
+      return;
+   }
+
+   auto branches = t.GetListOfBranches();
+   if (branches) {
+      for (auto branchObj : *branches) {
+         const auto name = branchObj->GetName();
+         if (bNamesReg.insert(name).second) {
+            bNames.emplace_back(name);
+         } else if (!friendName.empty()) {
+            // If this is a friend and the branch name has already been inserted, it might be because the friend
+            // has a branch with the same name as a branch in the main tree. Let's add it as <friendname>.<branchname>.
+            // If used for a Snapshot, this name will become <friendname>_<branchname> (with an underscore).
+            const auto longName = friendName + "." + name;
+            if (bNamesReg.insert(longName).second)
+               bNames.emplace_back(longName);
+         }
+      }
+   }
+
+   auto friendTrees = t.GetListOfFriends();
+
+   if (!friendTrees)
+      return;
+
+   for (auto friendTreeObj : *friendTrees) {
+      auto friendElement = static_cast<TFriendElement *>(friendTreeObj);
+      auto friendTree = friendElement->GetTree();
+      const std::string frName(friendElement->GetName()); // this gets us the TTree name or the friend alias if any
+      GetTopLevelBranchNamesImpl(*friendTree, bNamesReg, bNames, analysedTrees, frName);
+   }
+}
+
+// Gets the names of all branches in a tree, accounts for friends.
+// Copied straight from RDFInterfaceUtils
+ROOT::RDF::ColumnNames_t GetTopLevelBranchNames(TTree &t)
+{
+   std::set<std::string> bNamesSet;
+   ROOT::RDF::ColumnNames_t bNames;
+   std::set<TTree *> analysedTrees;
+   GetTopLevelBranchNamesImpl(t, bNamesSet, bNames, analysedTrees);
+   return bNames;
+}
+
 // Read branches listed in branchNames in tree treeName in file fileName, return number of uncompressed bytes read.
 inline ByteData ReadTree(const std::string &treeName, const std::string &fileName,
                           const std::vector<std::string> &branchRegexes, const bool &useRegex,
@@ -85,13 +138,9 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
    
    t->SetBranchStatus("*", 0);
 
-   // We need to get _all_ the branches from the tree in order to see which ones match the regex that
-   // the user has provided, and then filter them accordingly.
-   const auto unfilteredBranches = t->GetListOfBranches();
-   std::vector<TObject *> branchObjects;
-   auto filterBranchObject = [useRegex, &branchRegexes](const TObject *object) {
-      std::string thisName(object->GetName());
-
+   const auto unfilteredBranchNames = GetTopLevelBranchNames(*t);
+   std::vector<std::string> branchNames;
+   auto filterBranchName = [useRegex, &branchRegexes](const std::string thisName) {
       const auto matchBranch = [useRegex, &thisName](const std::string &bName) {
          if (!useRegex) {
             return thisName.compare(bName) == 0;
@@ -103,11 +152,11 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
       const auto iterator = std::find_if(branchRegexes.begin(), branchRegexes.end(), matchBranch);
       return iterator != branchRegexes.end();
    };
-   std::copy_if(unfilteredBranches->begin(), unfilteredBranches->end(), std::back_inserter(branchObjects), filterBranchObject);
-   
+   std::copy_if(unfilteredBranchNames.begin(), unfilteredBranchNames.end(), std::back_inserter(branchNames), filterBranchName);
+
    std::vector<TBranch *> branches;
-   for (auto o : branchObjects) {
-      auto *b = t->GetBranch(o->GetName());
+   for (auto bName : branchNames) {
+      auto *b = t->GetBranch(bName.c_str());
       b->SetStatus(1);
       branches.push_back(b);
    }
