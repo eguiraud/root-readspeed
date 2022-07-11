@@ -28,6 +28,7 @@ void PrintThroughput(const Result &r)
 struct Args {
    Data fData;
    unsigned int fNThreads = 0;
+   bool fAllBranches = false;
    bool fShouldRun = false;
 };
 
@@ -36,15 +37,18 @@ Args ParseArgs(int argc, char **argv)
    // Print help message and exit if "--help"
    if (argc < 2 || (argc == 2 && (std::strcmp(argv[1], "--help") == 0 || std::strcmp(argv[1], "-h") == 0))) {
       std::cout << "Usage:\n"
-                << "  root-readspeed --trees tname1 [tname2 ...] --files fname1 [fname2 ...]\n"
-                << "                 --branches bname1 [bname2 ...] [--threads nthreads]\n"
-                << "                 [--regexOff]"
+                << "  root-readspeed --trees tname1 [tname2 ...]\n"
+                << "                 --files fname1 [fname2 ...]\n"
+                << "                 (--all-branches | --branches bname1 [bname2 ...])\n"
+                << "                 [--regex-off]\n"
+                << "                 [--threads nthreads]\n"
                 << "  root-readspeed (--help|-h)\n";
       return {};
    }
 
    Data d;
    unsigned int nThreads = 0;
+   bool allBranches = false;
 
    enum class EArgState { kNone, kTrees, kFiles, kBranches, kThreads } argState = EArgState::kNone;
    for (int i = 1; i < argc; ++i) {
@@ -56,9 +60,12 @@ Args ParseArgs(int argc, char **argv)
          argState = EArgState::kBranches;
       else if (std::strcmp(argv[i], "--threads") == 0)
          argState = EArgState::kThreads;
-      else if (std::strcmp(argv[i], "--regexOff") == 0) {
+      else if (std::strcmp(argv[i], "--regex-off") == 0) {
          argState = EArgState::kNone;
          d.fUseRegex = false;
+      } else if (std::strcmp(argv[i], "--all-branches") == 0) {
+         argState = EArgState::kNone;
+         allBranches = true;
       } else {
          switch (argState) {
          case EArgState::kTrees: d.fTreeNames.emplace_back(argv[i]); break;
@@ -70,14 +77,22 @@ Args ParseArgs(int argc, char **argv)
       }
    }
 
-   return Args{std::move(d), nThreads, /*fShouldRun=*/true};
+   return Args{std::move(d), nThreads, allBranches, /*fShouldRun=*/true};
 }
 
 int main(int argc, char **argv)
 {
-   const auto args = ParseArgs(argc, argv);
+   auto args = ParseArgs(argc, argv);
+
    if (!args.fShouldRun)
       return 1; // ParseArgs has printed the --help, has run the --test or has encountered an issue and logged about it
+   if (args.fAllBranches) {
+      if (!args.fData.fBranchNames.empty())
+         throw std::runtime_error("Can't use 'all-branches' argument and specify branches as well.");
+      
+      args.fData.fBranchNames = { ".*" };
+      args.fData.fUseRegex = true;
+   }
 
    PrintThroughput(EvalThroughput(args.fData, args.fNThreads));
 
