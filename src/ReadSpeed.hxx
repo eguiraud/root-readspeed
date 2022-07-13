@@ -117,17 +117,16 @@ ROOT::RDF::ColumnNames_t GetTopLevelBranchNames(TTree &t)
 
 // Read branches listed in branchNames in tree treeName in file fileName, return number of uncompressed bytes read.
 inline ByteData ReadTree(const std::string &treeName, const std::string &fileName,
-                          const std::vector<std::string> &branchRegexes, const bool &useRegex,
-                          EntryRange range = {-1, -1}
-                        )
+                         const std::vector<std::string> &branchRegexes, const bool &useRegex,
+                         EntryRange range = {-1, -1})
 {
    // This logic avoids re-opening the same file many times if not needed
    // Given the static lifetime of `f`, we cannot use a `unique_ptr<TFile>` lest we have issues at teardown
    // (e.g. because this file outlives ROOT global lists). Instead we rely on ROOT's memory management.
    thread_local TFile *f;
    if (f == nullptr || f->GetName() != fileName) {
-     delete f;
-     f = TFile::Open(fileName.c_str()); // TFile::Open uses plug-ins if needed
+      delete f;
+      f = TFile::Open(fileName.c_str()); // TFile::Open uses plug-ins if needed
    }
 
    if (f->IsZombie())
@@ -135,7 +134,7 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
    std::unique_ptr<TTree> t(f->Get<TTree>(treeName.c_str()));
    if (t == nullptr)
       throw std::runtime_error("Could not retrieve tree '" + treeName + "' from file '" + fileName + '\'');
-   
+
    t->SetBranchStatus("*", 0);
 
    const auto unfilteredBranchNames = GetTopLevelBranchNames(*t);
@@ -152,7 +151,8 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
       const auto iterator = std::find_if(branchRegexes.begin(), branchRegexes.end(), matchBranch);
       return iterator != branchRegexes.end();
    };
-   std::copy_if(unfilteredBranchNames.begin(), unfilteredBranchNames.end(), std::back_inserter(branchNames), filterBranchName);
+   std::copy_if(unfilteredBranchNames.begin(), unfilteredBranchNames.end(), std::back_inserter(branchNames),
+                filterBranchName);
 
    std::vector<TBranch *> branches;
    for (auto bName : branchNames) {
@@ -168,15 +168,15 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
       throw std::runtime_error("Range end (" + std::to_string(range.fEnd) + ") is beyod the end of tree '" +
                                t->GetName() + "' in file '" + t->GetCurrentFile()->GetName() + "' with " +
                                std::to_string(nEntries) + " entries.");
-   
+
    ULong64_t bytesRead = 0;
    const ULong64_t fileStartBytes = f->GetBytesRead();
    for (auto e = range.fStart; e < range.fEnd; ++e)
       for (auto b : branches)
          bytesRead += b->GetEntry(e);
-   
+
    const ULong64_t fileBytesRead = f->GetBytesRead() - fileStartBytes;
-   return { bytesRead, fileBytesRead };
+   return {bytesRead, fileBytesRead};
 }
 
 inline Result EvalThroughputST(const Data &d)
@@ -292,10 +292,14 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
 
    // for each file, for each range, spawn a reading task
    auto sumBytes = [](const std::vector<ByteData> &bytesData) -> ByteData {
-      const auto uncompressedBytes = std::accumulate(bytesData.begin(), bytesData.end(), 0ull, [](ULong64_t sum, const ByteData& o){ return sum + o.fUncompressedBytesRead; });
-      const auto compressedBytes = std::accumulate(bytesData.begin(), bytesData.end(), 0ull, [](ULong64_t sum, const ByteData& o){ return sum + o.fCompressedBytesRead; });
+      const auto uncompressedBytes =
+         std::accumulate(bytesData.begin(), bytesData.end(), 0ull,
+                         [](ULong64_t sum, const ByteData &o) { return sum + o.fUncompressedBytesRead; });
+      const auto compressedBytes =
+         std::accumulate(bytesData.begin(), bytesData.end(), 0ull,
+                         [](ULong64_t sum, const ByteData &o) { return sum + o.fCompressedBytesRead; });
 
-      return { uncompressedBytes, compressedBytes };
+      return {uncompressedBytes, compressedBytes};
    };
 
    auto processFile = [&](int fileIdx) {
@@ -314,7 +318,13 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
    const auto totalByteData = pool.MapReduce(processFile, ROOT::TSeqUL{d.fFileNames.size()}, sumBytes);
    sw.Stop();
 
-   return {sw.RealTime(), sw.CpuTime(), clsw.RealTime(), clsw.CpuTime(), totalByteData.fUncompressedBytesRead, totalByteData.fCompressedBytesRead, actualThreads};
+   return {sw.RealTime(),
+           sw.CpuTime(),
+           clsw.RealTime(),
+           clsw.CpuTime(),
+           totalByteData.fUncompressedBytesRead,
+           totalByteData.fCompressedBytesRead,
+           actualThreads};
 }
 
 inline Result EvalThroughput(const Data &d, unsigned nThreads)
