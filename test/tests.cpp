@@ -17,7 +17,7 @@ void RequireFile(const std::string &fname, const std::vector<std::string> &branc
    TTree t("t", "t");
 
    int var = 42;
-   for (const auto b : branchNames) {
+   for (const auto &b : branchNames) {
       t.Branch(b.c_str(), &var);
    }
 

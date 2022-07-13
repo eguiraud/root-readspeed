@@ -115,10 +115,59 @@ ROOT::RDF::ColumnNames_t GetTopLevelBranchNames(TTree &t)
    return bNames;
 }
 
+std::vector<std::string> GetMatchingBranchNames(const std::string &fileName, const std::string &treeName,
+                                                const std::vector<std::string> &regexes, bool useRegex)
+{
+   TFile *f = TFile::Open(fileName.c_str());
+   if (f->IsZombie())
+      throw std::runtime_error("Could not open file '" + fileName + '\'');
+   std::unique_ptr<TTree> t(f->Get<TTree>(treeName.c_str()));
+   if (t == nullptr)
+      throw std::runtime_error("Could not retrieve tree '" + treeName + "' from file '" + fileName + '\'');
+
+   const auto unfilteredBranchNames = GetTopLevelBranchNames(*t);
+   std::set<std::string> usedRegexes;
+   std::vector<std::string> branchNames;
+
+   auto filterBranchName = [useRegex, regexes, &usedRegexes](std::string bName) {
+      const auto matchBranch = [useRegex, &usedRegexes, bName](std::string regex) {
+         bool match = false;
+         if (!useRegex) {
+            match = bName.compare(regex) == 0;
+         } else {
+            std::regex branchRegex(regex);
+            match = std::regex_match(bName, branchRegex);
+         }
+
+         if (match)
+            usedRegexes.insert(regex);
+
+         return match;
+      };
+
+      const auto iterator = std::find_if(regexes.begin(), regexes.end(), matchBranch);
+      return iterator != regexes.end();
+   };
+   std::copy_if(unfilteredBranchNames.begin(), unfilteredBranchNames.end(), std::back_inserter(branchNames),
+                filterBranchName);
+
+   if (branchNames.empty() && useRegex)
+      throw std::runtime_error("Provided branch regexes didn't match any branches in the tree.");
+   if (usedRegexes.size() != regexes.size()) {
+      std::cout << "The following branches/regexes weren't found in the tree:" << std::endl;
+      for (const auto &regex : regexes) {
+         if (usedRegexes.find(regex) == usedRegexes.end())
+            std::cout << "\t" + regex << std::endl;
+      }
+      throw std::runtime_error("Some branches/regexes weren't found in the tree...");
+   }
+
+   return branchNames;
+}
+
 // Read branches listed in branchNames in tree treeName in file fileName, return number of uncompressed bytes read.
 inline ByteData ReadTree(const std::string &treeName, const std::string &fileName,
-                         const std::vector<std::string> &branchRegexes, const bool &useRegex,
-                         EntryRange range = {-1, -1})
+                         const std::vector<std::string> &branchNames, EntryRange range = {-1, -1})
 {
    // This logic avoids re-opening the same file many times if not needed
    // Given the static lifetime of `f`, we cannot use a `unique_ptr<TFile>` lest we have issues at teardown
@@ -137,25 +186,8 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
 
    t->SetBranchStatus("*", 0);
 
-   const auto unfilteredBranchNames = GetTopLevelBranchNames(*t);
-   std::vector<std::string> branchNames;
-   auto filterBranchName = [useRegex, &branchRegexes](const std::string thisName) {
-      const auto matchBranch = [useRegex, &thisName](const std::string &bName) {
-         if (!useRegex) {
-            return thisName.compare(bName) == 0;
-         }
-         std::regex branchRegex(bName);
-         return std::regex_match(thisName, branchRegex);
-      };
-
-      const auto iterator = std::find_if(branchRegexes.begin(), branchRegexes.end(), matchBranch);
-      return iterator != branchRegexes.end();
-   };
-   std::copy_if(unfilteredBranchNames.begin(), unfilteredBranchNames.end(), std::back_inserter(branchNames),
-                filterBranchName);
-
    std::vector<TBranch *> branches;
-   for (auto bName : branchNames) {
+   for (auto &bName : branchNames) {
       auto *b = t->GetBranch(bName.c_str());
       b->SetStatus(1);
       branches.push_back(b);
@@ -172,7 +204,7 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
    ULong64_t bytesRead = 0;
    const ULong64_t fileStartBytes = f->GetBytesRead();
    for (auto e = range.fStart; e < range.fEnd; ++e)
-      for (auto b : branches)
+      for (const auto &b : branches)
          bytesRead += b->GetEntry(e);
 
    const ULong64_t fileBytesRead = f->GetBytesRead() - fileStartBytes;
@@ -181,23 +213,26 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
 
 inline Result EvalThroughputST(const Data &d)
 {
-   TStopwatch sw;
-   sw.Start();
-
    auto treeIdx = 0;
    ULong64_t uncompressedBytesRead = 0;
    ULong64_t compressedBytesRead = 0;
 
+   TStopwatch sw;
+
    for (const auto &fName : d.fFileNames) {
-      const auto byteData = ReadTree(d.fTreeNames[treeIdx], fName, d.fBranchNames, d.fUseRegex);
+      const auto branchNames = GetMatchingBranchNames(fName, d.fTreeNames[treeIdx], d.fBranchNames, d.fUseRegex);
+
+      sw.Start();
+
+      const auto byteData = ReadTree(d.fTreeNames[treeIdx], fName, branchNames);
       uncompressedBytesRead += byteData.fUncompressedBytesRead;
       compressedBytesRead += byteData.fCompressedBytesRead;
 
       if (d.fTreeNames.size() > 1)
          ++treeIdx;
-   }
 
-   sw.Stop();
+      sw.Stop();
+   }
 
    return {sw.RealTime(), sw.CpuTime(), 0., 0., uncompressedBytesRead, compressedBytesRead, 0};
 }
@@ -290,6 +325,16 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
    const auto rangesPerFile = MergeClusters(GetClusters(d), maxTasksPerFile);
    clsw.Stop();
 
+   auto treeIdx = 0;
+   std::vector<std::vector<std::string>> fileBranchNames;
+   for (const auto &fName : d.fFileNames) {
+      const auto branchNames = GetMatchingBranchNames(fName, d.fTreeNames[treeIdx], d.fBranchNames, d.fUseRegex);
+      fileBranchNames.push_back(branchNames);
+
+      if (d.fTreeNames.size() > 1)
+         ++treeIdx;
+   }
+
    // for each file, for each range, spawn a reading task
    auto sumBytes = [](const std::vector<ByteData> &bytesData) -> ByteData {
       const auto uncompressedBytes =
@@ -305,9 +350,10 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
    auto processFile = [&](int fileIdx) {
       const auto &fileName = d.fFileNames[fileIdx];
       const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
+      const auto &branchNames = fileBranchNames[fileIdx];
 
       auto readRange = [&](const EntryRange &range) -> ByteData {
-         return ReadTree(treeName, fileName, d.fBranchNames, d.fUseRegex, range);
+         return ReadTree(treeName, fileName, branchNames, range);
       };
 
       return pool.MapReduce(readRange, rangesPerFile[fileIdx], sumBytes);
