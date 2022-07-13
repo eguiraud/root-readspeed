@@ -90,8 +90,8 @@ int main(int argc, char **argv)
    if (args.fAllBranches) {
       if (!args.fData.fBranchNames.empty())
          throw std::runtime_error("Can't use 'all-branches' argument and specify branches as well.");
-      
-      args.fData.fBranchNames = { ".*" };
+
+      args.fData.fBranchNames = {".*"};
       args.fData.fUseRegex = true;
    }
 
