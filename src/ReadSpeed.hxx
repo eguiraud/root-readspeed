@@ -34,7 +34,7 @@ struct Data {
    /// Branches to read.
    std::vector<std::string> fBranchNames;
    /// If the branch names should use regex matching.
-   bool fUseRegex = true;
+   bool fUseRegex = false;
 };
 
 struct Result {
