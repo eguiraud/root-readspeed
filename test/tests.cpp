@@ -60,10 +60,9 @@ TEST_CASE("Branch test")
       const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"(x|y)_.*nch"}}, 0);
       CHECK_MESSAGE(result.fUncompressedBytesRead == 80000000, "Wrong number of bytes read");
    }
-   SUBCASE("No regex")
+   SUBCASE("No matches")
    {
-      const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"."}, false}, 0);
-      CHECK_MESSAGE(result.fUncompressedBytesRead == 0, "Wrong number of bytes read");
+      CHECK_THROWS(EvalThroughput({{"t"}, {"test3.root"}, {"."}, false}, 0));
    }
    SUBCASE("All branches")
    {
