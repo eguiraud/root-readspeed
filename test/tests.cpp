@@ -35,11 +35,13 @@ TEST_CASE("Integration test")
    {
       const auto result = EvalThroughput({{"t"}, {"test1.root", "test2.root"}, {"x"}}, 0);
       CHECK_MESSAGE(result.fUncompressedBytesRead == 80000000, "Wrong number of bytes read");
+      CHECK_MESSAGE(result.fCompressedBytesRead == 643934, "Wrong number of compressed bytes read");
    }
    SUBCASE("Multi-thread run")
    {
       const auto result = EvalThroughput({{"t"}, {"test1.root", "test2.root"}, {"x"}}, 2);
       CHECK_MESSAGE(result.fUncompressedBytesRead == 80000000, "Wrong number of bytes read");
+      CHECK_MESSAGE(result.fCompressedBytesRead == 643934, "Wrong number of compressed bytes read");
    }
 
    gSystem->Unlink("test1.root");
@@ -53,12 +55,14 @@ TEST_CASE("Branch test")
    SUBCASE("Single branch")
    {
       const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"x"}}, 0);
-      CHECK_MESSAGE(result.fUncompressedBytesRead == 40000000, "Wrong number of bytes read");
+      CHECK_MESSAGE(result.fUncompressedBytesRead == 40000000, "Wrong number of uncompressed bytes read");
+      CHECK_MESSAGE(result.fCompressedBytesRead == 321967, "Wrong number of compressed bytes read");
    }
    SUBCASE("Pattern branches")
    {
       const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"(x|y)_.*nch"}, true}, 0);
-      CHECK_MESSAGE(result.fUncompressedBytesRead == 80000000, "Wrong number of bytes read");
+      CHECK_MESSAGE(result.fUncompressedBytesRead == 80000000, "Wrong number of uncompressed bytes read");
+      CHECK_MESSAGE(result.fCompressedBytesRead == 661576, "Wrong number of compressed bytes read");
    }
    SUBCASE("No matches")
    {
@@ -68,7 +72,8 @@ TEST_CASE("Branch test")
    SUBCASE("All branches")
    {
       const auto result = EvalThroughput({{"t"}, {"test3.root"}, {".*"}, true}, 0);
-      CHECK_MESSAGE(result.fUncompressedBytesRead == 160000000, "Wrong number of bytes read");
+      CHECK_MESSAGE(result.fUncompressedBytesRead == 160000000, "Wrong number of uncompressed bytes read");
+      CHECK_MESSAGE(result.fCompressedBytesRead == 1316837, "Wrong number of compressed bytes read");
    }
    
    gSystem->Unlink("test3.root");
