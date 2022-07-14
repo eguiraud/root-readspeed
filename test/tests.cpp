@@ -57,16 +57,17 @@ TEST_CASE("Branch test")
    }
    SUBCASE("Pattern branches")
    {
-      const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"(x|y)_.*nch"}}, 0);
+      const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"(x|y)_.*nch"}, true}, 0);
       CHECK_MESSAGE(result.fUncompressedBytesRead == 80000000, "Wrong number of bytes read");
    }
    SUBCASE("No matches")
    {
-      CHECK_THROWS(EvalThroughput({{"t"}, {"test3.root"}, {"."}, false}, 0));
+      CHECK_THROWS(EvalThroughput({{"t"}, {"test3.root"}, {"x_.*"}, false}, 0));
+      CHECK_THROWS(EvalThroughput({{"t"}, {"test3.root"}, {"z_.*"}, true}, 0));
    }
    SUBCASE("All branches")
    {
-      const auto result = EvalThroughput({{"t"}, {"test3.root"}, {".*"}}, 0);
+      const auto result = EvalThroughput({{"t"}, {"test3.root"}, {".*"}, true}, 0);
       CHECK_MESSAGE(result.fUncompressedBytesRead == 160000000, "Wrong number of bytes read");
    }
    
