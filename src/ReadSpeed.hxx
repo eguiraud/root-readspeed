@@ -7,8 +7,7 @@
 #include <ROOT/TSeq.hxx>
 #include <ROOT/TThreadExecutor.hxx>
 #include <ROOT/TTreeProcessorMT.hxx> // for TTreeProcessorMT::GetTasksPerWorkerHint
-#include <ROOT/RDF/Utils.hxx>
-#include <TFriendElement.h>
+#include <ROOT/RDF/InterfaceUtils.hxx>
 #include <TBranch.h>
 #include <TFile.h>
 #include <TStopwatch.h>
@@ -65,56 +64,6 @@ struct ByteData {
    ULong64_t fCompressedBytesRead;
 };
 
-// Gets the names of all branches in a tree, accounts for friends.
-// Copied straight from RDFInterfaceUtils
-void GetTopLevelBranchNamesImpl(TTree &t, std::set<std::string> &bNamesReg, ROOT::RDF::ColumnNames_t &bNames,
-                                std::set<TTree *> &analysedTrees, const std::string friendName = "")
-{
-   if (!analysedTrees.insert(&t).second) {
-      return;
-   }
-
-   auto branches = t.GetListOfBranches();
-   if (branches) {
-      for (auto branchObj : *branches) {
-         const auto name = branchObj->GetName();
-         if (bNamesReg.insert(name).second) {
-            bNames.emplace_back(name);
-         } else if (!friendName.empty()) {
-            // If this is a friend and the branch name has already been inserted, it might be because the friend
-            // has a branch with the same name as a branch in the main tree. Let's add it as <friendname>.<branchname>.
-            // If used for a Snapshot, this name will become <friendname>_<branchname> (with an underscore).
-            const auto longName = friendName + "." + name;
-            if (bNamesReg.insert(longName).second)
-               bNames.emplace_back(longName);
-         }
-      }
-   }
-
-   auto friendTrees = t.GetListOfFriends();
-
-   if (!friendTrees)
-      return;
-
-   for (auto friendTreeObj : *friendTrees) {
-      auto friendElement = static_cast<TFriendElement *>(friendTreeObj);
-      auto friendTree = friendElement->GetTree();
-      const std::string frName(friendElement->GetName()); // this gets us the TTree name or the friend alias if any
-      GetTopLevelBranchNamesImpl(*friendTree, bNamesReg, bNames, analysedTrees, frName);
-   }
-}
-
-// Gets the names of all branches in a tree, accounts for friends.
-// Copied straight from RDFInterfaceUtils
-ROOT::RDF::ColumnNames_t GetTopLevelBranchNames(TTree &t)
-{
-   std::set<std::string> bNamesSet;
-   ROOT::RDF::ColumnNames_t bNames;
-   std::set<TTree *> analysedTrees;
-   GetTopLevelBranchNamesImpl(t, bNamesSet, bNames, analysedTrees);
-   return bNames;
-}
-
 std::vector<std::string> GetMatchingBranchNames(const std::string &fileName, const std::string &treeName,
                                                 const std::vector<std::string> &regexes, bool useRegex)
 {
@@ -125,7 +74,7 @@ std::vector<std::string> GetMatchingBranchNames(const std::string &fileName, con
    if (t == nullptr)
       throw std::runtime_error("Could not retrieve tree '" + treeName + "' from file '" + fileName + '\'');
 
-   const auto unfilteredBranchNames = GetTopLevelBranchNames(*t);
+   const auto unfilteredBranchNames = ROOT::Internal::RDF::GetTopLevelBranchNames(*t);
    std::set<std::string> usedRegexes;
    std::vector<std::string> branchNames;
 
