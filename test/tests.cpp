@@ -8,15 +8,19 @@
 
 using namespace ReadSpeed;
 
-void RequireFile(const std::string &fname)
+void RequireFile(const std::string &fname, const std::vector<std::string> &branchNames = {"x"})
 {
    if (gSystem->AccessPathName(fname.c_str()) == false) // then the file already exists: weird return value convention
       return;                                           // nothing to do
 
    TFile f(fname.c_str(), "recreate");
    TTree t("t", "t");
-   int x = 42;
-   t.Branch("x", &x);
+
+   int var = 42;
+   for (const auto b : branchNames) {
+      t.Branch(b.c_str(), &var);
+   }
+
    for (int i = 0; i < 10000000; ++i)
       t.Fill();
    t.Write();
@@ -40,4 +44,27 @@ TEST_CASE("Integration test")
 
    gSystem->Unlink("test1.root");
    gSystem->Unlink("test2.root");
+}
+
+TEST_CASE("Branch test")
+{
+   RequireFile("test3.root", { "x", "x_branch", "y_brunch", "mismatched" });
+
+   SUBCASE("Single branch")
+   {
+      const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"x"}}, 0);
+      CHECK_MESSAGE(result.fUncompressedBytesRead == 40000000, "Wrong number of bytes read");
+   }
+   SUBCASE("Pattern branches")
+   {
+      const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"(x|y)_.*nch"}}, 0);
+      CHECK_MESSAGE(result.fUncompressedBytesRead == 80000000, "Wrong number of bytes read");
+   }
+   SUBCASE("No regex")
+   {
+      const auto result = EvalThroughput({{"t"}, {"test3.root"}, {"."}, false}, 0);
+      CHECK_MESSAGE(result.fUncompressedBytesRead == 00000000, "Wrong number of bytes read");
+   }
+   
+   gSystem->Unlink("test3.root");
 }
