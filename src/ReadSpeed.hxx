@@ -7,7 +7,7 @@
 #include <ROOT/TSeq.hxx>
 #include <ROOT/TThreadExecutor.hxx>
 #include <ROOT/TTreeProcessorMT.hxx> // for TTreeProcessorMT::GetTasksPerWorkerHint
-#include <ROOT/RDF/InterfaceUtils.hxx>
+#include <ROOT/RDF/InterfaceUtils.hxx> // for ROOT::Internal::RDF::GetTopLevelBranchNames
 #include <TBranch.h>
 #include <TFile.h>
 #include <TStopwatch.h>
@@ -65,7 +65,7 @@ struct ByteData {
 };
 
 std::vector<std::string> GetMatchingBranchNames(const std::string &fileName, const std::string &treeName,
-                                                const std::vector<std::string> &regexes, bool useRegex)
+                                                const std::vector<std::string> &regexes)
 {
    TFile *f = TFile::Open(fileName.c_str());
    if (f->IsZombie())
@@ -78,15 +78,10 @@ std::vector<std::string> GetMatchingBranchNames(const std::string &fileName, con
    std::set<std::string> usedRegexes;
    std::vector<std::string> branchNames;
 
-   auto filterBranchName = [useRegex, regexes, &usedRegexes](std::string bName) {
-      const auto matchBranch = [useRegex, &usedRegexes, bName](std::string regex) {
-         bool match = false;
-         if (!useRegex) {
-            match = bName.compare(regex) == 0;
-         } else {
-            std::regex branchRegex(regex);
-            match = std::regex_match(bName, branchRegex);
-         }
+   auto filterBranchName = [regexes, &usedRegexes](std::string bName) {
+      const auto matchBranch = [&usedRegexes, bName](std::string regex) {
+         std::regex branchRegex(regex);
+         bool match = std::regex_match(bName, branchRegex);
 
          if (match)
             usedRegexes.insert(regex);
@@ -100,15 +95,16 @@ std::vector<std::string> GetMatchingBranchNames(const std::string &fileName, con
    std::copy_if(unfilteredBranchNames.begin(), unfilteredBranchNames.end(), std::back_inserter(branchNames),
                 filterBranchName);
 
-   if (branchNames.empty() && useRegex)
+   if (branchNames.empty())
       throw std::runtime_error("Provided branch regexes didn't match any branches in the tree.");
    if (usedRegexes.size() != regexes.size()) {
-      std::cout << "The following branches/regexes weren't found in the tree:" << std::endl;
+      std::stringstream errStream;
+      errStream << "The following regexes didn't match any branches in the tree, this is probably unintended:\n";
       for (const auto &regex : regexes) {
          if (usedRegexes.find(regex) == usedRegexes.end())
-            std::cout << "\t" + regex << std::endl;
+            errStream << '\t' + regex << '\n';
       }
-      throw std::runtime_error("Some branches/regexes weren't found in the tree...");
+      throw std::runtime_error(errStream.str());
    }
 
    return branchNames;
@@ -138,6 +134,10 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
    std::vector<TBranch *> branches;
    for (auto &bName : branchNames) {
       auto *b = t->GetBranch(bName.c_str());
+      if (b == nullptr)
+         throw std::runtime_error("Could not retrieve branch '" + bName + "' from tree '" + t->GetName() +
+                                  "' in file '" + t->GetCurrentFile()->GetName() + '\'');
+
       b->SetStatus(1);
       branches.push_back(b);
    }
@@ -169,7 +169,11 @@ inline Result EvalThroughputST(const Data &d)
    TStopwatch sw;
 
    for (const auto &fName : d.fFileNames) {
-      const auto branchNames = GetMatchingBranchNames(fName, d.fTreeNames[treeIdx], d.fBranchNames, d.fUseRegex);
+      std::vector<std::string> branchNames;
+      if (d.fUseRegex)
+         branchNames = GetMatchingBranchNames(fName, d.fTreeNames[treeIdx], d.fBranchNames);
+      else
+         branchNames = d.fBranchNames;
 
       sw.Start();
 
@@ -277,7 +281,12 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
    auto treeIdx = 0;
    std::vector<std::vector<std::string>> fileBranchNames;
    for (const auto &fName : d.fFileNames) {
-      const auto branchNames = GetMatchingBranchNames(fName, d.fTreeNames[treeIdx], d.fBranchNames, d.fUseRegex);
+      std::vector<std::string> branchNames;
+      if (d.fUseRegex)
+         branchNames = GetMatchingBranchNames(fName, d.fTreeNames[treeIdx], d.fBranchNames);
+      else
+         branchNames = d.fBranchNames;
+
       fileBranchNames.push_back(branchNames);
 
       if (d.fTreeNames.size() > 1)

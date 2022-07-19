@@ -52,6 +52,8 @@ Args ParseArgs(int argc, char **argv)
 
    enum class EArgState { kNone, kTrees, kFiles, kBranches, kThreads } argState = EArgState::kNone;
    enum class EBranchState { kNone, kRegular, kRegex, kAll } branchState = EBranchState::kNone;
+   const auto branchOptionsErrMsg =
+      "Options --all-branches, --branches, and --branches-regex are mutually exclusive. You can use only one.\n";
 
    for (int i = 1; i < argc; ++i) {
       std::string arg(argv[i]);
@@ -63,9 +65,7 @@ Args ParseArgs(int argc, char **argv)
       } else if (arg.compare("--all-branches") == 0) {
          argState = EArgState::kNone;
          if (branchState != EBranchState::kNone && branchState != EBranchState::kAll) {
-            std::cerr << "Options --all-branches, --branches, and --branches-regex are mutually exclusive. You can use "
-                         "only one."
-                      << std::endl;
+            std::cerr << branchOptionsErrMsg;
             return {};
          }
          branchState = EBranchState::kAll;
@@ -74,18 +74,14 @@ Args ParseArgs(int argc, char **argv)
       } else if (arg.compare("--branches") == 0) {
          argState = EArgState::kBranches;
          if (branchState != EBranchState::kNone && branchState != EBranchState::kRegular) {
-            std::cerr << "Options --all-branches, --branches, and --branches-regex are mutually exclusive. You can use "
-                         "only one."
-                      << std::endl;
+            std::cerr << branchOptionsErrMsg;
             return {};
          }
          branchState = EBranchState::kRegular;
       } else if (arg.compare("--branches-regex") == 0) {
          argState = EArgState::kBranches;
          if (branchState != EBranchState::kNone && branchState != EBranchState::kRegex) {
-            std::cerr << "Options --all-branches, --branches, and --branches-regex are mutually exclusive. You can use "
-                         "only one."
-                      << std::endl;
+            std::cerr << branchOptionsErrMsg;
             return {};
          }
          branchState = EBranchState::kRegex;
@@ -112,7 +108,7 @@ int main(int argc, char **argv)
 
    if (!args.fShouldRun)
       return 1; // ParseArgs has printed the --help, has run the --test or has encountered an issue and logged about it
-   
+
    PrintThroughput(EvalThroughput(args.fData, args.fNThreads));
 
    return 0;
