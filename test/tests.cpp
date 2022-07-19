@@ -50,7 +50,7 @@ TEST_CASE("Integration test")
 
 TEST_CASE("Branch test")
 {
-   RequireFile("test3.root", { "x", "x_branch", "y_brunch", "mismatched" });
+   RequireFile("test3.root", {"x", "x_branch", "y_brunch", "mismatched"});
 
    SUBCASE("Single branch")
    {
@@ -75,6 +75,6 @@ TEST_CASE("Branch test")
       CHECK_MESSAGE(result.fUncompressedBytesRead == 160000000, "Wrong number of uncompressed bytes read");
       CHECK_MESSAGE(result.fCompressedBytesRead == 1316837, "Wrong number of compressed bytes read");
    }
-   
+
    gSystem->Unlink("test3.root");
 }
