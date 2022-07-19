@@ -98,13 +98,12 @@ std::vector<std::string> GetMatchingBranchNames(const std::string &fileName, con
    if (branchNames.empty())
       throw std::runtime_error("Provided branch regexes didn't match any branches in the tree.");
    if (usedRegexes.size() != regexes.size()) {
-      std::stringstream errStream;
-      errStream << "The following regexes didn't match any branches in the tree, this is probably unintended:\n";
+      std::string errString = "The following regexes didn't match any branches in the tree, this is probably unintended:\n";
       for (const auto &regex : regexes) {
          if (usedRegexes.find(regex) == usedRegexes.end())
-            errStream << '\t' + regex << '\n';
+            errString += '\t' + regex + '\n';
       }
-      throw std::runtime_error(errStream.str());
+      throw std::runtime_error(errString);
    }
 
    return branchNames;
@@ -132,7 +131,7 @@ inline ByteData ReadTree(const std::string &treeName, const std::string &fileNam
    t->SetBranchStatus("*", 0);
 
    std::vector<TBranch *> branches;
-   for (auto &bName : branchNames) {
+   for (const auto &bName : branchNames) {
       auto *b = t->GetBranch(bName.c_str());
       if (b == nullptr)
          throw std::runtime_error("Could not retrieve branch '" + bName + "' from tree '" + t->GetName() +
