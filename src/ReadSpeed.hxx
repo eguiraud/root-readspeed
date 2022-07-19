@@ -243,8 +243,8 @@ inline Result EvalThroughputMT(const Data &d, unsigned nThreads)
 
    // for each file, for each range, spawn a reading task
    auto sumBytes = [](const std::vector<ByteData> &bytesData) -> ByteData {
-      const auto uncompressedBytes = std::accumulate(bytesData.begin(), bytesData.end(), 0ull, [](int, const ByteData& o){ return o.fUncompressedBytesRead; });
-      const auto compressedBytes = std::accumulate(bytesData.begin(), bytesData.end(), 0ull, [](int, const ByteData& o){ return o.fCompressedBytesRead; });
+      const auto uncompressedBytes = std::accumulate(bytesData.begin(), bytesData.end(), 0ull, [](ULong64_t sum, const ByteData& o){ return sum + o.fUncompressedBytesRead; });
+      const auto compressedBytes = std::accumulate(bytesData.begin(), bytesData.end(), 0ull, [](ULong64_t sum, const ByteData& o){ return sum + o.fCompressedBytesRead; });
 
       return { uncompressedBytes, compressedBytes };
    };
