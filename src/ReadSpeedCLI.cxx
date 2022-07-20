@@ -26,10 +26,10 @@ void ReadSpeed::PrintThroughput(const Result &r)
    std::cout << "Compressed throughput:\t\t" << r.fCompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
 }
 
-Args ReadSpeed::ParseArgs(int argc, char **argv)
+Args ReadSpeed::ParseArgs(std::vector<std::string> args)
 {
    // Print help message and exit if "--help"
-   if (argc < 2 || (argc == 2 && (std::strcmp(argv[1], "--help") == 0 || std::strcmp(argv[1], "-h") == 0))) {
+   if (args.size() < 2 || (args.size() == 2 && (args[1].compare("--help") == 0 || args[1].compare("-h") == 0))) {
       std::cout << "Usage:\n"
                 << "  root-readspeed --trees tname1 [tname2 ...]\n"
                 << "                 --files fname1 [fname2 ...]\n"
@@ -48,8 +48,8 @@ Args ReadSpeed::ParseArgs(int argc, char **argv)
    const auto branchOptionsErrMsg =
       "Options --all-branches, --branches, and --branches-regex are mutually exclusive. You can use only one.\n";
 
-   for (int i = 1; i < argc; ++i) {
-      std::string arg(argv[i]);
+   for (size_t i = 1; i < args.size(); ++i) {
+      auto arg = args[i];
 
       if (arg.compare("--trees") == 0) {
          argState = EArgState::kTrees;
@@ -82,18 +82,30 @@ Args ReadSpeed::ParseArgs(int argc, char **argv)
       } else if (arg.compare("--threads") == 0) {
          argState = EArgState::kThreads;
       } else if (arg.compare(0, 1, "-") == 0) {
-         std::cerr << "Unrecognized option '" << argv[i] << "'\n";
+         std::cerr << "Unrecognized option '" << arg << "'\n";
          return {};
       } else {
          switch (argState) {
-         case EArgState::kTrees: d.fTreeNames.emplace_back(argv[i]); break;
-         case EArgState::kFiles: d.fFileNames.emplace_back(argv[i]); break;
-         case EArgState::kBranches: d.fBranchNames.emplace_back(argv[i]); break;
-         case EArgState::kThreads: nThreads = std::atoi(argv[i]); break;
-         default: std::cerr << "Unrecognized option '" << argv[i] << "'\n"; return {};
+         case EArgState::kTrees: d.fTreeNames.emplace_back(arg); break;
+         case EArgState::kFiles: d.fFileNames.emplace_back(arg); break;
+         case EArgState::kBranches: d.fBranchNames.emplace_back(arg); break;
+         case EArgState::kThreads: nThreads = std::stoi(arg); break;
+         default: std::cerr << "Unrecognized option '" << arg << "'\n"; return {};
          }
       }
    }
 
    return Args{std::move(d), nThreads, branchState == EBranchState::kAll, /*fShouldRun=*/true};
+}
+
+Args ReadSpeed::ParseArgs(int argc, char **argv)
+{
+   std::vector<std::string> args;
+   args.reserve(argc);
+
+   for (int i = 0; i < argc; ++i) {
+      args.push_back(std::string(argv[i]));
+   }
+
+   return ParseArgs(args);
 }
