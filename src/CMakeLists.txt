@@ -1,6 +1,6 @@
 add_library(ReadSpeed SHARED
     ${CMAKE_CURRENT_SOURCE_DIR}/ReadSpeed.cxx
-    ${CMAKE_CURRENT_SOURCE_DIR}/ReadSpeedInput.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/ReadSpeedCLI.cxx
 )
 add_library(ReadSpeed::ReadSpeed ALIAS ReadSpeed)
 
