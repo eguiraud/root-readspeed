@@ -6,9 +6,9 @@
 #include <iostream>
 #include <cstring>
 
-namespace ReadSpeed {
+using namespace ReadSpeed;
 
-void PrintThroughput(const Result &r)
+void ReadSpeed::PrintThroughput(const Result &r)
 {
    std::cout << "Thread pool size:\t\t" << r.fThreadPoolSize << '\n';
 
@@ -26,7 +26,7 @@ void PrintThroughput(const Result &r)
    std::cout << "Compressed throughput:\t\t" << r.fCompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
 }
 
-Args ParseArgs(int argc, char **argv)
+Args ReadSpeed::ParseArgs(int argc, char **argv)
 {
    // Print help message and exit if "--help"
    if (argc < 2 || (argc == 2 && (std::strcmp(argv[1], "--help") == 0 || std::strcmp(argv[1], "-h") == 0))) {
@@ -94,5 +94,3 @@ Args ParseArgs(int argc, char **argv)
 
    return Args{std::move(d), nThreads, branchState == EBranchState::kAll, /*fShouldRun=*/true};
 }
-
-} // namespace ReadSpeed
