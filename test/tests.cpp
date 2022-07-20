@@ -1,3 +1,6 @@
+/* Copyright (C) 2020 Enrico Guiraud
+   See the LICENSE file in the top directory for more information. */
+
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 #include "ReadSpeed.hxx"
