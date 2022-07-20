@@ -46,6 +46,20 @@ TEST_CASE("Integration test")
       CHECK_MESSAGE(result.fUncompressedBytesRead == 80000000, "Wrong number of bytes read");
       CHECK_MESSAGE(result.fCompressedBytesRead == 643934, "Wrong number of compressed bytes read");
    }
+   SUBCASE("Invalid filename")
+   {
+      CHECK_THROWS_WITH(EvalThroughput({{"t"}, {"test_fake.root"}, {"x"}}, 0), "Could not open file 'test_fake.root'");
+   }
+   SUBCASE("Invalid tree")
+   {
+      CHECK_THROWS_WITH(EvalThroughput({{"t_fake"}, {"test1.root"}, {"x"}}, 0),
+                        "Could not retrieve tree 't_fake' from file 'test1.root'");
+   }
+   SUBCASE("Invalid branch")
+   {
+      CHECK_THROWS_WITH(EvalThroughput({{"t"}, {"test1.root"}, {"z"}}, 0),
+                        "Could not retrieve branch 'z' from tree 't' in file 'test1.root'");
+   }
 
    gSystem->Unlink("test1.root");
    gSystem->Unlink("test2.root");
