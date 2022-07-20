@@ -16,10 +16,10 @@
 #include <set>
 #include <regex>
 
-namespace ReadSpeed {
+using namespace ReadSpeed;
 
-std::vector<std::string> GetMatchingBranchNames(const std::string &fileName, const std::string &treeName,
-                                                const std::vector<std::string> &regexes)
+std::vector<std::string> ReadSpeed::GetMatchingBranchNames(const std::string &fileName, const std::string &treeName,
+                                                           const std::vector<std::string> &regexes)
 {
    TFile *f = TFile::Open(fileName.c_str());
    if (f->IsZombie())
@@ -65,8 +65,8 @@ std::vector<std::string> GetMatchingBranchNames(const std::string &fileName, con
 }
 
 // Read branches listed in branchNames in tree treeName in file fileName, return number of uncompressed bytes read.
-ByteData ReadTree(const std::string &treeName, const std::string &fileName, const std::vector<std::string> &branchNames,
-                  EntryRange range)
+ByteData ReadSpeed::ReadTree(const std::string &treeName, const std::string &fileName,
+                             const std::vector<std::string> &branchNames, EntryRange range)
 {
    // This logic avoids re-opening the same file many times if not needed
    // Given the static lifetime of `f`, we cannot use a `unique_ptr<TFile>` lest we have issues at teardown
@@ -114,7 +114,7 @@ ByteData ReadTree(const std::string &treeName, const std::string &fileName, cons
    return {bytesRead, fileBytesRead};
 }
 
-Result EvalThroughputST(const Data &d)
+Result ReadSpeed::EvalThroughputST(const Data &d)
 {
    auto treeIdx = 0;
    ULong64_t uncompressedBytesRead = 0;
@@ -146,7 +146,7 @@ Result EvalThroughputST(const Data &d)
 
 // Return a vector of EntryRanges per file, i.e. a vector of vectors of EntryRanges with outer size equal to
 // d.fFileNames.
-std::vector<std::vector<EntryRange>> GetClusters(const Data &d)
+std::vector<std::vector<EntryRange>> ReadSpeed::GetClusters(const Data &d)
 {
    auto treeIdx = 0;
    const auto nFiles = d.fFileNames.size();
@@ -179,7 +179,7 @@ std::vector<std::vector<EntryRange>> GetClusters(const Data &d)
 // run around TTreeProcessorMT::GetTasksPerWorkerHint tasks per worker thread.
 // TODO it would be better to expose TTreeProcessorMT's actual logic and call the exact same method from here
 std::vector<std::vector<EntryRange>>
-MergeClusters(std::vector<std::vector<EntryRange>> &&clusters, unsigned int maxTasksPerFile)
+ReadSpeed::MergeClusters(std::vector<std::vector<EntryRange>> &&clusters, unsigned int maxTasksPerFile)
 {
    std::vector<std::vector<EntryRange>> mergedClusters(clusters.size());
 
@@ -217,7 +217,7 @@ MergeClusters(std::vector<std::vector<EntryRange>> &&clusters, unsigned int maxT
    return mergedClusters;
 }
 
-Result EvalThroughputMT(const Data &d, unsigned nThreads)
+Result ReadSpeed::EvalThroughputMT(const Data &d, unsigned nThreads)
 {
    ROOT::TThreadExecutor pool(nThreads);
    const auto actualThreads = ROOT::GetThreadPoolSize();
@@ -285,7 +285,7 @@ Result EvalThroughputMT(const Data &d, unsigned nThreads)
            actualThreads};
 }
 
-Result EvalThroughput(const Data &d, unsigned nThreads)
+Result ReadSpeed::EvalThroughput(const Data &d, unsigned nThreads)
 {
    if (d.fTreeNames.empty())
       throw std::runtime_error("Please provide at least one tree name");
@@ -298,5 +298,3 @@ Result EvalThroughput(const Data &d, unsigned nThreads)
 
    return nThreads > 0 ? EvalThroughputMT(d, nThreads) : EvalThroughputST(d);
 }
-
-} // namespace ReadSpeed
