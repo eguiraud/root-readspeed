@@ -81,6 +81,9 @@ Args ReadSpeed::ParseArgs(int argc, char **argv)
          d.fUseRegex = true;
       } else if (arg.compare("--threads") == 0) {
          argState = EArgState::kThreads;
+      } else if (arg.compare(0, 1, "-") == 0) {
+         std::cerr << "Unrecognized option '" << argv[i] << "'\n";
+         return {};
       } else {
          switch (argState) {
          case EArgState::kTrees: d.fTreeNames.emplace_back(argv[i]); break;
