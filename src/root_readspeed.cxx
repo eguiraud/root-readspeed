@@ -1,7 +1,7 @@
 /* Copyright (C) 2020 Enrico Guiraud
    See the LICENSE file in the top directory for more information. */
 
-#include "ReadSpeedInput.hxx"
+#include "ReadSpeedCLI.hxx"
 #include "ReadSpeed.hxx"
 
 using namespace ReadSpeed;
