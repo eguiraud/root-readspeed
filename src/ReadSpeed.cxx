@@ -25,7 +25,7 @@ std::vector<std::string> ReadSpeed::GetMatchingBranchNames(const std::string &fi
                                                            const std::vector<std::string> &regexes)
 {
    TFile *f = TFile::Open(fileName.c_str());
-   if (f->IsZombie())
+   if (f == nullptr || f->IsZombie())
       throw std::runtime_error("Could not open file '" + fileName + '\'');
    std::unique_ptr<TTree> t(f->Get<TTree>(treeName.c_str()));
    if (t == nullptr)
@@ -80,7 +80,7 @@ ByteData ReadSpeed::ReadTree(const std::string &treeName, const std::string &fil
       f = TFile::Open(fileName.c_str()); // TFile::Open uses plug-ins if needed
    }
 
-   if (f->IsZombie())
+   if (f == nullptr || f->IsZombie())
       throw std::runtime_error("Could not open file '" + fileName + '\'');
    std::unique_ptr<TTree> t(f->Get<TTree>(treeName.c_str()));
    if (t == nullptr)
@@ -157,7 +157,7 @@ std::vector<std::vector<EntryRange>> ReadSpeed::GetClusters(const Data &d)
    for (auto fileIdx = 0u; fileIdx < nFiles; ++fileIdx) {
       const auto &fileName = d.fFileNames[fileIdx];
       std::unique_ptr<TFile> f(TFile::Open(fileName.c_str()));
-      if (f->IsZombie())
+      if (f == nullptr || f->IsZombie())
          throw std::runtime_error("There was a problem opening file '" + fileName + '\'');
       const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
       auto *t = f->Get<TTree>(treeName.c_str()); // TFile owns this TTree
