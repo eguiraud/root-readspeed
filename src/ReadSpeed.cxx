@@ -24,7 +24,7 @@ using namespace ReadSpeed;
 std::vector<std::string> ReadSpeed::GetMatchingBranchNames(const std::string &fileName, const std::string &treeName,
                                                            const std::vector<std::string> &regexes)
 {
-   TFile *f = TFile::Open(fileName.c_str());
+   TFile *f = TFile::Open(fileName.c_str(), "READ_WITHOUT_GLOBALREGISTRATION");
    if (f == nullptr || f->IsZombie())
       throw std::runtime_error("Could not open file '" + fileName + '\'');
    std::unique_ptr<TTree> t(f->Get<TTree>(treeName.c_str()));
@@ -77,7 +77,7 @@ ByteData ReadSpeed::ReadTree(const std::string &treeName, const std::string &fil
    thread_local TFile *f;
    if (f == nullptr || f->GetName() != fileName) {
       delete f;
-      f = TFile::Open(fileName.c_str()); // TFile::Open uses plug-ins if needed
+      f = TFile::Open(fileName.c_str(), "READ_WITHOUT_GLOBALREGISTRATION"); // TFile::Open uses plug-ins if needed
    }
 
    if (f == nullptr || f->IsZombie())
@@ -156,7 +156,7 @@ std::vector<std::vector<EntryRange>> ReadSpeed::GetClusters(const Data &d)
    std::vector<std::vector<EntryRange>> ranges(nFiles);
    for (auto fileIdx = 0u; fileIdx < nFiles; ++fileIdx) {
       const auto &fileName = d.fFileNames[fileIdx];
-      std::unique_ptr<TFile> f(TFile::Open(fileName.c_str()));
+      std::unique_ptr<TFile> f(TFile::Open(fileName.c_str(), "READ_WITHOUT_GLOBALREGISTRATION"));
       if (f == nullptr || f->IsZombie())
          throw std::runtime_error("There was a problem opening file '" + fileName + '\'');
       const auto &treeName = d.fTreeNames.size() > 1 ? d.fTreeNames[fileIdx] : d.fTreeNames[0];
