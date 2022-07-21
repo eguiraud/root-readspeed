@@ -6,6 +6,7 @@
 #include "ReadSpeed.hxx"
 #include "ReadSpeedCLI.hxx"
 
+#include "ROOT/TTreeProcessorMT.hxx" // for TTreeProcessorMT::GetTasksPerWorkerHint
 #include "TFile.h"
 #include "TSystem.h"
 #include "TTree.h"
@@ -227,5 +228,26 @@ TEST_CASE("CLI test")
 
       CHECK_MESSAGE(parsedArgs.fShouldRun, "Program not running when given valid arguments");
       CHECK_MESSAGE(parsedArgs.fNThreads == threads, "Program not using the correct amount of threads");
+   }
+   SUBCASE("Multiple thread args")
+   {
+      const uint oldTasksPerWorker = ROOT::TTreeProcessorMT::GetTasksPerWorkerHint();
+      const std::vector<std::string> allArgs{
+         "root-readspeed",
+         "--files",
+         "file.root",
+         "--trees",
+         "t",
+         "--branches",
+         "x",
+         "--tasks-per-worker",
+         std::to_string(oldTasksPerWorker + 10),
+      };
+
+      const auto parsedArgs = ParseArgs(allArgs);
+      const auto newTasksPerWorker = ROOT::TTreeProcessorMT::GetTasksPerWorkerHint();
+
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
+      CHECK_MESSAGE(newTasksPerWorker == oldTasksPerWorker + 10, "Tasks per worker hint not updated correctly");
    }
 }
