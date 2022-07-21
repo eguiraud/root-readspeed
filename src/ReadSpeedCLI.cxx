@@ -3,6 +3,8 @@
 
 #include "ReadSpeedCLI.hxx"
 
+#include <ROOT/TTreeProcessorMT.hxx> // for TTreeProcessorMT::SetTasksPerWorkerHint
+
 #include <iostream>
 #include <cstring>
 
@@ -10,6 +12,8 @@ using namespace ReadSpeed;
 
 void ReadSpeed::PrintThroughput(const Result &r)
 {
+   const uint effectiveThreads = std::max(r.fThreadPoolSize, 1u);
+
    std::cout << "Thread pool size:\t\t" << r.fThreadPoolSize << '\n';
 
    if (r.fMTSetupRealTime > 0.) {
@@ -19,11 +23,16 @@ void ReadSpeed::PrintThroughput(const Result &r)
 
    std::cout << "Real time:\t\t\t" << r.fRealTime << " s\n";
    std::cout << "CPU time:\t\t\t" << r.fCpuTime << " s\n";
+
    std::cout << "Uncompressed data read:\t\t" << r.fUncompressedBytesRead << " bytes\n";
    std::cout << "Compressed data read:\t\t" << r.fCompressedBytesRead << " bytes\n";
 
    std::cout << "Uncompressed throughput:\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
+   std::cout << "\t\t\t\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 / effectiveThreads
+             << " MB/s/thread for " << effectiveThreads << " threads\n";
    std::cout << "Compressed throughput:\t\t" << r.fCompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
+   std::cout << "\t\t\t\t" << r.fCompressedBytesRead / r.fRealTime / 1024 / 1024 / effectiveThreads
+             << " MB/s/thread for " << effectiveThreads << " threads\n";
 }
 
 Args ReadSpeed::ParseArgs(const std::vector<std::string> &args)
@@ -43,7 +52,7 @@ Args ReadSpeed::ParseArgs(const std::vector<std::string> &args)
    Data d;
    unsigned int nThreads = 0;
 
-   enum class EArgState { kNone, kTrees, kFiles, kBranches, kThreads } argState = EArgState::kNone;
+   enum class EArgState { kNone, kTrees, kFiles, kBranches, kThreads, kTasksPerWorkerHint } argState = EArgState::kNone;
    enum class EBranchState { kNone, kRegular, kRegex, kAll } branchState = EBranchState::kNone;
    const auto branchOptionsErrMsg =
       "Options --all-branches, --branches, and --branches-regex are mutually exclusive. You can use only one.\n";
@@ -89,7 +98,14 @@ Args ReadSpeed::ParseArgs(const std::vector<std::string> &args)
          case EArgState::kTrees: d.fTreeNames.emplace_back(arg); break;
          case EArgState::kFiles: d.fFileNames.emplace_back(arg); break;
          case EArgState::kBranches: d.fBranchNames.emplace_back(arg); break;
-         case EArgState::kThreads: nThreads = std::stoi(arg); break;
+         case EArgState::kThreads:
+            nThreads = std::stoi(arg);
+            argState = EArgState::kNone;
+            break;
+         case EArgState::kTasksPerWorkerHint:
+            ROOT::TTreeProcessorMT::SetTasksPerWorkerHint(std::stoi(arg));
+            argState = EArgState::kNone;
+            break;
          default: std::cerr << "Unrecognized option '" << arg << "'\n"; return {};
          }
       }
