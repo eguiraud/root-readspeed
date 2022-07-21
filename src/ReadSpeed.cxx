@@ -235,6 +235,11 @@ Result ReadSpeed::EvalThroughputMT(const Data &d, unsigned nThreads)
    const auto rangesPerFile = MergeClusters(GetClusters(d), maxTasksPerFile);
    clsw.Stop();
 
+   size_t nranges = 0;
+   for (const auto &r : rangesPerFile)
+      nranges += r.size();
+   std::cout << "Total number of entry ranges: " << nranges << '\n';
+
    auto treeIdx = 0;
    std::vector<std::vector<std::string>> fileBranchNames;
    for (const auto &fName : d.fFileNames) {
