@@ -153,4 +153,69 @@ TEST_CASE("CLI test")
                     "Number of parsed trees does not match number of provided trees.");
       CHECK_MESSAGE(outBranches == inBranches, "List of parsed trees does not match list of provided trees.");
    }
+   SUBCASE("Help arg")
+   {
+      const std::vector<std::string> allArgs{"root-readspeed", "--help"};
+
+      const auto parsedArgs = ParseArgs(allArgs);
+
+      CHECK_MESSAGE(!parsedArgs.fShouldRun, "Programme running when using help argument");
+   }
+   SUBCASE("No args")
+   {
+      const std::vector<std::string> allArgs{"root-readspeed"};
+
+      const auto parsedArgs = ParseArgs(allArgs);
+
+      CHECK_MESSAGE(!parsedArgs.fShouldRun, "Programme running when not using any arguments");
+   }
+   SUBCASE("Regular args")
+   {
+      const std::vector<std::string> allArgs{
+         "root-readspeed", "--files", "file.root", "--trees", "t", "--branches", "x",
+      };
+
+      const auto parsedArgs = ParseArgs(allArgs);
+
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
+      CHECK_MESSAGE(!parsedArgs.fData.fUseRegex, "Programme using regex when it should not");
+      CHECK_MESSAGE(parsedArgs.fNThreads == 0, "Programme not set to single thread mode");
+   }
+   SUBCASE("Regex args")
+   {
+      const std::vector<std::string> allArgs{
+         "root-readspeed", "--files", "file.root", "--trees", "t", "--branches-regex", "x.*",
+      };
+
+      const auto parsedArgs = ParseArgs(allArgs);
+
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
+      CHECK_MESSAGE(parsedArgs.fData.fUseRegex, "Programme not using regex when it should");
+   }
+   SUBCASE("All branch args")
+   {
+      const std::vector<std::string> allArgs{
+         "root-readspeed", "--files", "file.root", "--trees", "t", "--all-branches",
+      };
+      const std::vector<std::string> allBranches = {".*"};
+
+      const auto parsedArgs = ParseArgs(allArgs);
+
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
+      CHECK_MESSAGE(parsedArgs.fData.fUseRegex, "Programme not using regex when it should");
+      CHECK_MESSAGE(parsedArgs.fAllBranches, "Programme not checking for all branches when it should");
+      CHECK_MESSAGE(parsedArgs.fData.fBranchNames == allBranches, "All branch regex not correct");
+   }
+   SUBCASE("Multiple thread args")
+   {
+      const std::vector<std::string> allArgs{
+         "root-readspeed", "--files", "file.root", "--trees", "t", "--branches", "x", "--threads", "16",
+      };
+      const uint threads = 16;
+
+      const auto parsedArgs = ParseArgs(allArgs);
+
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
+      CHECK_MESSAGE(parsedArgs.fNThreads == threads, "Programme not using the correct amount of threads");
+   }
 }
