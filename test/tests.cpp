@@ -159,7 +159,7 @@ TEST_CASE("CLI test")
 
       const auto parsedArgs = ParseArgs(allArgs);
 
-      CHECK_MESSAGE(!parsedArgs.fShouldRun, "Programme running when using help argument");
+      CHECK_MESSAGE(!parsedArgs.fShouldRun, "Program running when using help argument");
    }
    SUBCASE("No args")
    {
@@ -167,7 +167,7 @@ TEST_CASE("CLI test")
 
       const auto parsedArgs = ParseArgs(allArgs);
 
-      CHECK_MESSAGE(!parsedArgs.fShouldRun, "Programme running when not using any arguments");
+      CHECK_MESSAGE(!parsedArgs.fShouldRun, "Program running when not using any arguments");
    }
    SUBCASE("Regular args")
    {
@@ -177,9 +177,9 @@ TEST_CASE("CLI test")
 
       const auto parsedArgs = ParseArgs(allArgs);
 
-      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
-      CHECK_MESSAGE(!parsedArgs.fData.fUseRegex, "Programme using regex when it should not");
-      CHECK_MESSAGE(parsedArgs.fNThreads == 0, "Programme not set to single thread mode");
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Program not running when given valid arguments");
+      CHECK_MESSAGE(!parsedArgs.fData.fUseRegex, "Program using regex when it should not");
+      CHECK_MESSAGE(parsedArgs.fNThreads == 0, "Program not set to single thread mode");
    }
    SUBCASE("Regex args")
    {
@@ -189,8 +189,8 @@ TEST_CASE("CLI test")
 
       const auto parsedArgs = ParseArgs(allArgs);
 
-      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
-      CHECK_MESSAGE(parsedArgs.fData.fUseRegex, "Programme not using regex when it should");
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Program not running when given valid arguments");
+      CHECK_MESSAGE(parsedArgs.fData.fUseRegex, "Program not using regex when it should");
    }
    SUBCASE("All branch args")
    {
@@ -201,9 +201,9 @@ TEST_CASE("CLI test")
 
       const auto parsedArgs = ParseArgs(allArgs);
 
-      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
-      CHECK_MESSAGE(parsedArgs.fData.fUseRegex, "Programme not using regex when it should");
-      CHECK_MESSAGE(parsedArgs.fAllBranches, "Programme not checking for all branches when it should");
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Program not running when given valid arguments");
+      CHECK_MESSAGE(parsedArgs.fData.fUseRegex, "Program not using regex when it should");
+      CHECK_MESSAGE(parsedArgs.fAllBranches, "Program not checking for all branches when it should");
       CHECK_MESSAGE(parsedArgs.fData.fBranchNames == allBranches, "All branch regex not correct");
    }
    SUBCASE("Multiple thread args")
@@ -215,7 +215,7 @@ TEST_CASE("CLI test")
 
       const auto parsedArgs = ParseArgs(allArgs);
 
-      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
-      CHECK_MESSAGE(parsedArgs.fNThreads == threads, "Programme not using the correct amount of threads");
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Program not running when given valid arguments");
+      CHECK_MESSAGE(parsedArgs.fNThreads == threads, "Program not using the correct amount of threads");
    }
 }
