@@ -169,6 +169,16 @@ TEST_CASE("CLI test")
 
       CHECK_MESSAGE(!parsedArgs.fShouldRun, "Program running when not using any arguments");
    }
+   SUBCASE("Invalid args")
+   {
+      const std::vector<std::string> allArgs{
+         "root-readspeed", "--files", "file.root", "--trees", "t", "--branches", "x", "--fake-flag",
+      };
+
+      const auto parsedArgs = ParseArgs(allArgs);
+
+      CHECK_MESSAGE(!parsedArgs.fShouldRun, "Program running when using invalid flags");
+   }
    SUBCASE("Regular args")
    {
       const std::vector<std::string> allArgs{
