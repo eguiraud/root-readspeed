@@ -12,8 +12,6 @@ using namespace ReadSpeed;
 
 void ReadSpeed::PrintThroughput(const Result &r)
 {
-   const uint effectiveThreads = std::max(r.fThreadPoolSize, 1u);
-
    std::cout << "Thread pool size:\t\t" << r.fThreadPoolSize << '\n';
 
    if (r.fMTSetupRealTime > 0.) {
@@ -26,6 +24,8 @@ void ReadSpeed::PrintThroughput(const Result &r)
 
    std::cout << "Uncompressed data read:\t\t" << r.fUncompressedBytesRead << " bytes\n";
    std::cout << "Compressed data read:\t\t" << r.fCompressedBytesRead << " bytes\n";
+
+   const uint effectiveThreads = std::max(r.fThreadPoolSize, 1u);
 
    std::cout << "Uncompressed throughput:\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 << " MB/s\n";
    std::cout << "\t\t\t\t" << r.fUncompressedBytesRead / r.fRealTime / 1024 / 1024 / effectiveThreads
@@ -90,6 +90,8 @@ Args ReadSpeed::ParseArgs(const std::vector<std::string> &args)
          d.fUseRegex = true;
       } else if (arg == "--threads") {
          argState = EArgState::kThreads;
+      } else if (arg == "--tasks-per-worker") {
+         argState = EArgState::kTasksPerWorkerHint;
       } else if (arg[0] == '-') {
          std::cerr << "Unrecognized option '" << arg << "'\n";
          return {};

@@ -247,7 +247,7 @@ TEST_CASE("CLI test")
       const auto parsedArgs = ParseArgs(allArgs);
       const auto newTasksPerWorker = ROOT::TTreeProcessorMT::GetTasksPerWorkerHint();
 
-      CHECK_MESSAGE(parsedArgs.fShouldRun, "Programme not running when given valid arguments");
+      CHECK_MESSAGE(parsedArgs.fShouldRun, "Program not running when given valid arguments");
       CHECK_MESSAGE(newTasksPerWorker == oldTasksPerWorker + 10, "Tasks per worker hint not updated correctly");
    }
 }
