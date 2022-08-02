@@ -81,7 +81,7 @@ Args ReadSpeed::ParseArgs(const std::vector<std::string> &args)
          d.fUseRegex = true;
       } else if (arg == "--threads") {
          argState = EArgState::kThreads;
-      } else if (arg.compare(0, 1, "-") == 0) {
+      } else if (arg[0] == '-') {
          std::cerr << "Unrecognized option '" << arg << "'\n";
          return {};
       } else {
