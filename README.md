@@ -1,3 +1,5 @@
+# ⚠️ root-readspeed is now part of ROOT itself, this repository is not up to date
+
 # root-readspeed
 
 A tool to measure what throughput can be expected from ROOT for a given combination of system, dataset and number of threads.
